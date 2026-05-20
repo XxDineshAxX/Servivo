@@ -1,0 +1,204 @@
+// Servivo — Prisma Schema
+// Database: PostgreSQL with PostGIS extension
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CONSUMER
+  PRO
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+  CANCELLED
+  EXPIRED
+}
+
+enum ServiceCategory {
+  PLUMBING
+  ELECTRICAL
+  CLEANING
+  CARPENTRY
+  PAINTING
+  LANDSCAPING
+  HVAC
+  LOCKSMITH
+  MOVING
+  OTHER
+}
+
+enum ProAvailabilityStatus {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  phone        String?   @unique
+  passwordHash String
+  role         UserRole
+  firstName    String
+  lastName     String
+  avatarUrl    String?
+  isVerified   Boolean   @default(false)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  consumer     Consumer?
+  pro          Pro?
+  refreshTokens RefreshToken[]
+  @@index([email])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@map("refresh_tokens")
+}
+
+model Consumer {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeCustomerId String?
+  defaultAddressLat  Float?
+  defaultAddressLng  Float?
+  defaultAddressText String?
+  bookings         Booking[]
+  reviewsGiven     Review[]  @relation("ReviewsByConsumer")
+  @@map("consumers")
+}
+
+model Pro {
+  id                   String                @id @default(cuid())
+  userId               String                @unique
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio                  String?
+  yearsExperience      Int?
+  isVerified           Boolean               @default(false)
+  stripeAccountId      String?
+  availabilityStatus   ProAvailabilityStatus @default(OFFLINE)
+  currentLat           Float?
+  currentLng           Float?
+  locationUpdatedAt    DateTime?
+  averageRating        Float                 @default(0)
+  totalReviews         Int                   @default(0)
+  services             ProService[]
+  bookings             Booking[]
+  availability         ProAvailabilityWindow[]
+  reviewsReceived      Review[]              @relation("ReviewsForPro")
+  @@index([availabilityStatus])
+  @@map("pros")
+}
+
+model ServiceType {
+  id          String          @id @default(cuid())
+  name        String
+  category    ServiceCategory
+  description String?
+  iconUrl     String?
+  basePrice   Float
+  isActive    Boolean         @default(true)
+  proServices ProService[]
+  bookings    Booking[]
+  @@map("service_types")
+}
+
+model ProService {
+  id            String      @id @default(cuid())
+  proId         String
+  pro           Pro         @relation(fields: [proId], references: [id], onDelete: Cascade)
+  serviceTypeId String
+  serviceType   ServiceType @relation(fields: [serviceTypeId], references: [id])
+  hourlyRate    Float
+  isActive      Boolean     @default(true)
+  @@unique([proId, serviceTypeId])
+  @@map("pro_services")
+}
+
+model ProAvailabilityWindow {
+  id        String @id @default(cuid())
+  proId     String
+  pro       Pro    @relation(fields: [proId], references: [id], onDelete: Cascade)
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  @@map("pro_availability_windows")
+}
+
+model Booking {
+  id              String        @id @default(cuid())
+  consumerId      String
+  consumer        Consumer      @relation(fields: [consumerId], references: [id])
+  proId           String?
+  pro             Pro?          @relation(fields: [proId], references: [id])
+  serviceTypeId   String
+  serviceType     ServiceType   @relation(fields: [serviceTypeId], references: [id])
+  status          BookingStatus @default(PENDING)
+  addressText     String
+  addressLat      Float
+  addressLng      Float
+  requestedAt     DateTime      @default(now())
+  scheduledFor    DateTime
+  acceptedAt      DateTime?
+  arrivedAt       DateTime?
+  completedAt     DateTime?
+  estimatedPrice  Float?
+  finalPrice      Float?
+  stripePaymentId String?
+  consumerNotes   String?
+  proNotes        String?
+  review          Review?
+  proResponses    BookingProResponse[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  @@index([status])
+  @@index([consumerId])
+  @@index([proId])
+  @@map("bookings")
+}
+
+model BookingProResponse {
+  id          String    @id @default(cuid())
+  bookingId   String
+  booking     Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  proId       String
+  notifiedAt  DateTime  @default(now())
+  respondedAt DateTime?
+  accepted    Boolean?
+  @@unique([bookingId, proId])
+  @@map("booking_pro_responses")
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  bookingId  String   @unique
+  booking    Booking  @relation(fields: [bookingId], references: [id])
+  consumerId String
+  consumer   Consumer @relation("ReviewsByConsumer", fields: [consumerId], references: [id])
+  proId      String
+  pro        Pro      @relation("ReviewsForPro", fields: [proId], references: [id])
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+  @@map("reviews")
+}

@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Servivo",
+    "slug": "servivo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./src/assets/images/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./src/assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.servivo.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Servivo needs your location to find nearby professionals.",
+        "NSLocationAlwaysUsageDescription": "Servivo uses your location in the background to track your route to jobs."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/images/adaptive-icon.png",
+        "backgroundColor": "#0F172A"
+      },
+      "package": "com.servivo.app",
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "ACCESS_BACKGROUND_LOCATION"]
+    },
+    "plugins": [
+      "expo-router",
+      ["expo-location", {
+        "locationAlwaysAndWhenInUsePermission": "Servivo uses your location to find nearby pros and track jobs."
+      }]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "your-eas-project-id"
+      }
+    }
+  }
+}
