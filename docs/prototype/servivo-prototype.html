@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Servivo — On-demand home services</title>
+
+<!-- Mapbox GL JS (loads from CDN; app falls back to a built-in map if unavailable) -->
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.5.1/mapbox-gl.css" rel="stylesheet" />
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.5.1/mapbox-gl.js"></script>
+
+<style>
+:root{
+  --brand:#13b5a6; --brand-d:#0d8f84; --brand-l:#e5f7f5;
+  --pro:#5b5bd6; --pro-d:#4646b8; --pro-l:#ecedfb;
+  --ink:#0f1a24; --ink2:#5a6b78; --line:#e6ebef; --bg:#f4f6f8;
+  --ok:#16a34a; --okl:#e7f6ec; --warn:#e08600; --bad:#dc2626; --badl:#fdeaea;
+  --amber:#f5a623; --card:#ffffff; --shadow:0 6px 22px rgba(15,26,36,.10);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:radial-gradient(900px 600px at 50% -10%,#1d2b3a,#0b1220);
+  color:var(--ink);min-height:100dvh;
+}
+.device{
+  max-width:460px;margin:0 auto;background:var(--bg);min-height:100dvh;
+  position:relative;overflow:hidden;box-shadow:0 0 70px rgba(0,0,0,.45);
+}
+#app{min-height:100dvh;display:flex;flex-direction:column}
+.screen{display:flex;flex-direction:column;flex:1}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input{font-family:inherit}
+
+/* ---- App bar ---- */
+.appbar{
+  position:sticky;top:0;z-index:30;background:var(--brand);color:#fff;
+  padding:14px 16px;display:flex;align-items:center;gap:10px;
+}
+.appbar.pro{background:var(--pro)}
+.appbar .title{font-weight:700;font-size:17px;letter-spacing:.2px}
+.appbar .sub{font-size:11px;opacity:.85;font-weight:500}
+.appbar .spacer{flex:1}
+.iconbtn{
+  width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.16);
+  color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;
+}
+.body{flex:1;padding:16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+
+/* ---- Brand / role screen ---- */
+.hero{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:34px 26px;gap:6px;
+  background:linear-gradient(170deg,#13b5a6,#0d8f84 60%,#0b6f67);
+  color:#fff;
+}
+.logo{
+  width:78px;height:78px;border-radius:22px;background:#fff;display:flex;
+  align-items:center;justify-content:center;box-shadow:0 14px 34px rgba(0,0,0,.28);margin-bottom:8px;
+}
+.brandname{font-size:34px;font-weight:800;letter-spacing:-.5px;margin-top:6px}
+.tagline{font-size:15px;opacity:.92;margin-bottom:6px}
+.heronote{font-size:12px;opacity:.8;max-width:300px;line-height:1.5}
+.rolewrap{padding:22px 18px 26px;display:flex;flex-direction:column;gap:12px;background:var(--bg)}
+.rolecard{
+  display:flex;align-items:center;gap:14px;background:var(--card);border:1.5px solid var(--line);
+  border-radius:16px;padding:16px;text-align:left;transition:.15s;
+}
+.rolecard:active{transform:scale(.98)}
+.rolecard .ic{
+  width:50px;height:50px;border-radius:14px;display:flex;align-items:center;
+  justify-content:center;font-size:24px;flex-shrink:0;
+}
+.rolecard.c .ic{background:var(--brand-l)}
+.rolecard.p .ic{background:var(--pro-l)}
+.rolecard h3{margin:0;font-size:16px}
+.rolecard p{margin:3px 0 0;font-size:12.5px;color:var(--ink2);line-height:1.4}
+.rolecard .arr{margin-left:auto;color:var(--ink2);font-size:20px}
+
+/* ---- Generic cards & controls ---- */
+.card{background:var(--card);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+.card h3{margin:0 0 4px;font-size:15px}
+.muted{color:var(--ink2);font-size:12.5px;line-height:1.5}
+.label{font-size:12px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.6px}
+.field{
+  width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:12px;
+  font-size:15px;background:#fff;color:var(--ink);outline:none;
+}
+.field:focus{border-color:var(--brand)}
+.btn{
+  width:100%;padding:14px;border-radius:13px;font-size:15px;font-weight:700;
+  background:var(--brand);color:#fff;transition:.12s;
+}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.5}
+.btn.pro{background:var(--pro)}
+.btn.dark{background:var(--ink)}
+.btn.ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+.btn.ok{background:var(--ok)}
+.btn.bad{background:var(--bad)}
+.btn.sm{padding:11px;font-size:13.5px}
+.btnrow{display:flex;gap:10px}
+.btnrow .btn{flex:1}
+
+/* ---- Map ---- */
+.map-slot{
+  height:230px;border-radius:16px;overflow:hidden;position:relative;
+  box-shadow:var(--shadow);background:#dde6ea;
+}
+.map-slot.tall{height:300px}
+#liveMap{position:absolute;inset:0}
+.mapboxgl-ctrl-logo{opacity:.5}
+.fb-bg{
+  position:absolute;inset:0;
+  background:
+    linear-gradient(#cfe6df 1px,transparent 1px) 0 0/100% 34px,
+    linear-gradient(90deg,#cfe6df 1px,transparent 1px) 0 0/34px 100%,
+    #e9f1ee;
+}
+.fb-road{position:absolute;background:#fff;box-shadow:0 0 0 1px #d6e0dc}
+.fb-water{position:absolute;background:#bfe0ea;border-radius:40% 60% 55% 45%/55% 45% 60% 40%}
+.fb-park{position:absolute;background:#cfe9c8;border-radius:30px}
+.fb-svg{position:absolute;inset:0;pointer-events:none}
+.fb-markers{position:absolute;inset:0}
+.mk{
+  position:absolute;transform:translate(-50%,-100%);transition:left 2.4s linear,top 2.4s linear;
+  display:flex;flex-direction:column;align-items:center;z-index:5;
+}
+.mk .pin{
+  width:34px;height:34px;border-radius:50% 50% 50% 2px;transform:rotate(45deg);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 10px rgba(0,0,0,.3);border:2px solid #fff;
+}
+.mk .pin span{transform:rotate(-45deg);font-size:15px}
+.mk.avail .pin{background:var(--brand)}
+.mk.busy .pin{background:#9aa9b2}
+.mk.sel .pin{background:var(--pro)}
+.mk.me .pin{background:var(--ink);border-radius:50%}
+.mk.me .pin{transform:none}
+.mk.me .pin span{transform:none}
+.mk .lbl{
+  margin-top:3px;background:#fff;border-radius:7px;padding:1px 6px;font-size:9.5px;
+  font-weight:700;white-space:nowrap;box-shadow:0 2px 5px rgba(0,0,0,.2);
+}
+.mk.moving .pin{animation:bob .9s ease-in-out infinite}
+@keyframes bob{50%{transform:rotate(45deg) translateY(-3px)}}
+.pulse{position:absolute;width:34px;height:34px;border-radius:50%;background:var(--ink);
+  transform:translate(-50%,-50%);opacity:.25;animation:pulse 2s ease-out infinite}
+@keyframes pulse{0%{transform:translate(-50%,-50%) scale(.6);opacity:.4}100%{transform:translate(-50%,-50%) scale(3);opacity:0}}
+.maptag{
+  position:absolute;left:10px;top:10px;background:rgba(15,26,36,.78);color:#fff;
+  font-size:10px;padding:4px 8px;border-radius:7px;z-index:10;font-weight:600;
+}
+
+/* ---- Category grid ---- */
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cat{
+  background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:14px;
+  text-align:left;transition:.13s;display:flex;flex-direction:column;gap:3px;
+}
+.cat:active{transform:scale(.97)}
+.cat.on{border-color:var(--brand);background:var(--brand-l)}
+.cat .emo{font-size:24px}
+.cat .nm{font-weight:700;font-size:14px}
+.cat .ds{font-size:11px;color:var(--ink2)}
+
+/* ---- Pro list / cards ---- */
+.pro-row{
+  display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);
+}
+.pro-row:last-child{border-bottom:none}
+.av{
+  width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:800;font-size:16px;flex-shrink:0;position:relative;
+}
+.av.lg{width:58px;height:58px;border-radius:16px;font-size:20px}
+.dot{
+  position:absolute;right:-3px;bottom:-3px;width:14px;height:14px;border-radius:50%;
+  border:2.5px solid #fff;background:#9aa9b2;
+}
+.dot.on{background:var(--ok)}
+.pro-row .nm{font-weight:700;font-size:14.5px}
+.pro-row .meta{font-size:12px;color:var(--ink2);margin-top:2px}
+.pro-row .right{margin-left:auto;text-align:right}
+.dist{font-weight:800;font-size:14px}
+.eta{font-size:11px;color:var(--ink2)}
+.star{color:var(--amber);font-weight:700}
+.chip{
+  display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;
+  padding:3px 9px;border-radius:20px;
+}
+.chip.ok{background:var(--okl);color:var(--ok)}
+.chip.busy{background:#eef1f3;color:var(--ink2)}
+.chip.warn{background:#fdf0db;color:var(--warn)}
+.chip.bolt{background:#fff4d6;color:#b07a00}
+
+/* ---- Status banner / states ---- */
+.statebox{
+  background:var(--card);border-radius:18px;padding:22px;text-align:center;box-shadow:var(--shadow);
+}
+.bigemoji{font-size:44px}
+.spinner{
+  width:42px;height:42px;border-radius:50%;border:4px solid var(--line);
+  border-top-color:var(--brand);animation:spin 1s linear infinite;margin:6px auto;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.banner{
+  border-radius:16px;padding:14px;display:flex;gap:12px;align-items:center;
+}
+.banner.req{background:var(--pro);color:#fff;box-shadow:0 8px 24px rgba(91,91,214,.4)}
+.banner.live{background:var(--okl);border:1.5px solid #bce6c8}
+.timeline{display:flex;flex-direction:column;gap:0;margin:6px 0}
+.tl{display:flex;gap:10px;align-items:flex-start}
+.tl .ico{width:24px;display:flex;flex-direction:column;align-items:center}
+.tl .ball{width:13px;height:13px;border-radius:50%;background:var(--line);border:2px solid #fff;flex-shrink:0}
+.tl.done .ball{background:var(--brand)}
+.tl.now .ball{background:var(--brand);box-shadow:0 0 0 4px var(--brand-l)}
+.tl .line{width:2px;flex:1;background:var(--line);min-height:22px}
+.tl.done .line{background:var(--brand)}
+.tl .txt{font-size:13px;padding-bottom:14px}
+.tl .txt b{font-size:13.5px}
+.tl.pending .txt{color:var(--ink2)}
+
+/* next-hour bar */
+.hourbar{
+  position:relative;height:30px;background:var(--okl);border-radius:9px;overflow:hidden;
+  border:1px solid #cdebd5;
+}
+.busyblk{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(45deg,#f3c0c0,#f3c0c0 5px,#efb0b0 5px,#efb0b0 10px)}
+.hourbar .now{position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--ink)}
+.hourticks{display:flex;justify-content:space-between;font-size:10px;color:var(--ink2);margin-top:3px}
+
+/* toast / notification */
+.toastwrap{position:fixed;left:0;right:0;top:0;z-index:200;display:flex;flex-direction:column;
+  align-items:center;gap:8px;padding:10px;pointer-events:none}
+.toast{
+  max-width:430px;width:100%;background:var(--ink);color:#fff;border-radius:13px;
+  padding:12px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.4);
+  animation:drop .3s ease;pointer-events:auto;
+}
+@keyframes drop{from{transform:translateY(-120%);opacity:0}}
+.toast .ic{font-size:20px}
+.toast .tt{font-weight:700;font-size:13.5px}
+.toast .tb{font-size:12px;opacity:.85;margin-top:1px}
+
+/* modal */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(8,14,20,.6);z-index:150;display:flex;
+  align-items:center;justify-content:center;padding:22px;
+}
+.modal{
+  background:#fff;border-radius:20px;padding:22px;max-width:420px;width:100%;
+  max-height:84vh;overflow-y:auto;animation:pop .25s ease;
+}
+@keyframes pop{from{transform:scale(.9);opacity:0}}
+.modal h2{margin:0 0 8px;font-size:19px}
+.kv{display:flex;justify-content:space-between;font-size:13.5px;padding:7px 0;border-bottom:1px solid var(--line)}
+.kv:last-child{border:none}
+.kv .k{color:var(--ink2)}
+.kv .v{font-weight:700}
+
+.section-t{font-size:13px;font-weight:800;color:var(--ink2);text-transform:uppercase;letter-spacing:.6px;margin:2px 0}
+.divider{height:1px;background:var(--line);margin:2px 0}
+.foot{padding:14px 16px 20px;background:var(--bg);position:sticky;bottom:0}
+.help-link{color:var(--brand-d);font-weight:700;font-size:12.5px;text-decoration:underline}
+.center{text-align:center}
+.row{display:flex;align-items:center;gap:8px}
+.grow{flex:1}
+.tiny{font-size:11px;color:var(--ink2)}
+.switch{
+  width:50px;height:28px;border-radius:20px;background:#cdd6db;position:relative;transition:.18s;flex-shrink:0;
+}
+.switch.on{background:var(--ok)}
+.switch::after{content:"";position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;
+  top:3px;left:3px;transition:.18s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.switch.on::after{left:25px}
+
+/* ===================== RESPONSIVE — desktop / web view =====================
+   Mobile (<960px): single-column phone layout (the default rules above).
+   Desktop (>=960px): the shell widens and map screens become a two-pane
+   layout — a tall live map beside a scrolling content column. */
+@media (min-width:960px){
+  body{background:radial-gradient(1200px 800px at 50% -12%,#1f2f40,#0a0f18)}
+  .device{max-width:1180px}
+  .appbar{padding:16px 28px}
+  .appbar .title{font-size:18px}
+  .iconbtn{width:38px;height:38px}
+  .brandname{font-size:40px}
+
+  /* default desktop body: a comfortable centered column
+     (used by sign-in, rejected and completed screens) */
+  .body{max-width:560px;margin:0 auto;width:100%;padding:26px 24px}
+
+  /* footer action button: centered, never full-bleed */
+  .foot{padding:14px 24px 24px}
+  .foot .btn{max-width:480px;margin:0 auto}
+
+  /* ---- map screens: live map panel + content column ---- */
+  [data-screen="c-home"] .body,
+  [data-screen="c-wait"] .body,
+  [data-screen="c-track"] .body{
+    max-width:1180px;display:grid;
+    grid-template-columns:1.5fr 1fr;
+    grid-template-rows:repeat(20,min-content);
+    gap:20px;align-content:start;
+  }
+  [data-screen="c-home"] .body>*,
+  [data-screen="c-wait"] .body>*,
+  [data-screen="c-track"] .body>*{grid-column:2;min-width:0}
+  [data-screen="c-home"] .body>.map-slot,
+  [data-screen="c-wait"] .body>.map-slot,
+  [data-screen="c-track"] .body>.map-slot{
+    grid-column:1;grid-row:1 / -1;
+    height:auto;align-self:stretch;
+    min-height:480px;max-height:calc(100dvh - 150px);
+    position:sticky;top:8px;
+  }
+
+  /* ---- pro dashboard: two-column card grid ---- */
+  [data-screen="p-dash"] .body{
+    max-width:1080px;display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;align-content:start;
+  }
+  [data-screen="p-dash"] .body>.banner,
+  [data-screen="p-dash"] .body>.card.center,
+  [data-screen="p-dash"] .body>.card:has(.map-slot){grid-column:1 / -1}
+  [data-screen="p-dash"] .map-slot{height:330px}
+
+  /* ---- pro sign-in: two-column profile grid ---- */
+  [data-screen="pro-login"] .body{
+    max-width:1000px;display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;align-content:start;
+  }
+  [data-screen="pro-login"] .body>.card:first-child{grid-column:1 / -1}
+
+  /* ---- landing: hero beside the role picker ---- */
+  [data-screen="role"] .screen{flex-direction:row}
+  [data-screen="role"] .hero{flex:1.1}
+  [data-screen="role"] .rolewrap{flex:0 0 440px;justify-content:center}
+}
+</style>
+</head>
+<body>
+<div class="device">
+  <div id="app"></div>
+</div>
+<div class="toastwrap" id="toasts"></div>
+<div id="modalRoot"></div>
+
+<script>
+/* ============================================================================
+   SERVIVO — On-demand home services booking (interactive prototype)
+   ----------------------------------------------------------------------------
+   A single-file, runnable demo of the Servivo concept:
+   consumers book the nearest pro who can arrive within the next hour;
+   pros accept or reject in real time.
+
+   This prototype simulates the production services so the UX can be tested
+   without any accounts or keys. Each service below is built behind a thin
+   abstraction so the real implementation can be dropped in later.
+
+   GOING LIVE — the 5 production requirements and where they plug in:
+   1. REAL MAP ......... set CONFIG.MAPBOX_TOKEN below -> the built-in fallback
+                         map is automatically replaced by live Mapbox GL tiles.
+   2. REAL-TIME BACKEND  RealtimeService currently syncs devices via the browser
+                         BroadcastChannel. Swap its 3 methods for Firebase
+                         Realtime Database (ref/onValue/update) — see comments.
+   3. AUTH ............. AuthService has separate consumer & pro login flows.
+                         Replace with Firebase Auth (email/phone providers).
+   4. PUSH ............. NotificationService uses the Web Notifications API.
+                         Swap for Firebase Cloud Messaging (FCM) for true push.
+   5. SCHEDULING ....... Scheduling.rankPros() filters pros free in the next
+                         60 min and sorts by Haversine distance — production
+                         logic, already real. Point it at your DB query.
+   ============================================================================ */
+
+/* ---------------------------------------------------------------------------
+   CONFIG  — paste real keys here to upgrade the prototype to live services
+--------------------------------------------------------------------------- */
+const CONFIG = {
+  // Paste a Mapbox public token (pk.xxx) to enable the real Mapbox map.
+  // Leave blank to use the built-in fallback map — the demo works either way.
+  MAPBOX_TOKEN: '',
+
+  // Paste your Firebase web config to swap the simulated realtime layer.
+  // Leave null to use the built-in cross-tab BroadcastChannel sync.
+  FIREBASE: null,
+  /* Example:
+  FIREBASE: { apiKey:'...', authDomain:'...', databaseURL:'...', projectId:'...' }
+  */
+};
+
+const APP_LOAD = Date.now();
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+
+/* ---------------------------------------------------------------------------
+   SERVICE CATEGORIES + MOCK PRO ROSTER (Dallas–Fort Worth)
+--------------------------------------------------------------------------- */
+const CATEGORIES = [
+  {id:'plumbing',  name:'Plumbing',       icon:'🔧', desc:'Leaks, clogs, installs'},
+  {id:'electrical',name:'Electrical',     icon:'⚡', desc:'Outlets, fixtures, panels'},
+  {id:'cleaning',  name:'House Cleaning', icon:'🧹', desc:'Deep & standard cleans'},
+  {id:'hvac',      name:'HVAC',           icon:'❄️', desc:'AC & heating repair'},
+  {id:'handyman',  name:'Handyman',       icon:'🛠️', desc:'Mounting & odd jobs'},
+];
+const catOf = id => CATEGORIES.find(c=>c.id===id);
+
+// busy = [[startMinFromAppLoad, endMinFromAppLoad], ...] for "today"
+const PROS = [
+  {id:'p1', name:'Marcus Reyes', cat:'plumbing',  lat:32.8210,lng:-96.7950, rating:4.9,jobs:412,rate:89, color:'#2563eb',online:true, busy:[[180,260]]},
+  {id:'p2', name:'Omar Haddad',  cat:'plumbing',  lat:32.7480,lng:-96.8330, rating:4.8,jobs:307,rate:79, color:'#0891b2',online:true, busy:[[150,230]]},
+  {id:'p3', name:'Ray Foster',   cat:'plumbing',  lat:32.6920,lng:-96.7600, rating:4.6,jobs:158,rate:75, color:'#475569',online:true, busy:[[-30,55]]},
+  {id:'p4', name:'Tonya Blake',  cat:'cleaning',  lat:32.8060,lng:-96.8400, rating:4.9,jobs:521,rate:69, color:'#db2777',online:true, busy:[[-200,-60]]},
+  {id:'p5', name:'Lena Park',    cat:'cleaning',  lat:32.7700,lng:-96.7700, rating:5.0,jobs:288,rate:72, color:'#9333ea',online:true, busy:[[200,280]]},
+  {id:'p6', name:'Gita Rao',     cat:'cleaning',  lat:32.8800,lng:-96.7100, rating:4.7,jobs:201,rate:65, color:'#c026d3',online:false,busy:[]},
+  {id:'p7', name:'Dev Patel',    cat:'electrical',lat:32.7950,lng:-96.7300, rating:4.8,jobs:366,rate:95, color:'#ea580c',online:true, busy:[]},
+  {id:'p8', name:'Priya Shah',   cat:'electrical',lat:32.8500,lng:-96.8600, rating:4.9,jobs:430,rate:99, color:'#d97706',online:true, busy:[[140,220]]},
+  {id:'p9', name:'Tom Walsh',    cat:'electrical',lat:32.7200,lng:-96.7900, rating:4.5,jobs:122,rate:85, color:'#65a30d',online:true, busy:[[-10,70]]},
+  {id:'p10',name:'Sara Nguyen',  cat:'hvac',      lat:32.8350,lng:-96.7050, rating:4.9,jobs:389,rate:110,color:'#0d9488',online:true, busy:[[130,210]]},
+  {id:'p11',name:'Carla Mendes', cat:'hvac',      lat:32.7600,lng:-96.8550, rating:4.8,jobs:274,rate:105,color:'#0284c7',online:true, busy:[[240,300]]},
+  {id:'p12',name:'Bea Cohen',    cat:'hvac',      lat:32.9000,lng:-96.6700, rating:4.7,jobs:190,rate:100,color:'#0369a1',online:false,busy:[]},
+  {id:'p13',name:'James Carter', cat:'handyman',  lat:32.7350,lng:-96.9000, rating:4.7,jobs:255,rate:60, color:'#b45309',online:true, busy:[[300,360]]},
+  {id:'p14',name:'Wes Donovan',  cat:'handyman',  lat:32.8650,lng:-96.7450, rating:4.6,jobs:177,rate:58, color:'#7c3a9a',online:true, busy:[[-120,-20]]},
+];
+const proById = id => PROS.find(p=>p.id===id);
+const DEFAULT_LOC = {lat:32.7831,lng:-96.8067}; // Downtown Dallas fallback
+
+/* ---------------------------------------------------------------------------
+   CORE LOGIC #1 — Haversine great-circle distance (km)
+   Production formula. Used to rank pros by true distance from the consumer.
+--------------------------------------------------------------------------- */
+function haversine(lat1,lon1,lat2,lon2){
+  const R = 6371; // earth radius, km
+  const toRad = d => d*Math.PI/180;
+  const dLat = toRad(lat2-lat1), dLon = toRad(lon2-lon1);
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+const kmToMi = km => km*0.621371;
+const estEta = km => Math.max(5, Math.round(kmToMi(km)/22*60)); // ~22 mph city avg
+
+/* ---------------------------------------------------------------------------
+   CORE LOGIC #2 — Scheduling engine
+   A pro qualifies if: they are online AND no calendar block overlaps the
+   next 60 minutes. Qualifying pros are sorted by Haversine distance.
+--------------------------------------------------------------------------- */
+const Scheduling = {
+  isOnline(pro){
+    const s = RealtimeService.proStatus(pro.id);
+    return s ? s.online : pro.online;
+  },
+  // free for the whole [now, now+60min] window?
+  freeNextHour(pro){
+    const now = Date.now(), winEnd = now + 60*60000;
+    return pro.busy.every(([s,e])=>{
+      const bs = APP_LOAD + s*60000, be = APP_LOAD + e*60000;
+      return !(bs < winEnd && be > now); // no overlap
+    });
+  },
+  // a pro already handling (or being asked about) a job is not bookable
+  hasLiveJob(proId){
+    return RealtimeService.bookings().some(b=>b.proId===proId &&
+      ['requested','enroute','arrived'].includes(b.status));
+  },
+  available(pro){
+    return this.isOnline(pro) && this.freeNextHour(pro) && !this.hasLiveJob(pro.id);
+  },
+
+  // rank all pros in a category by distance; mark availability + ETA
+  rankPros(catId, loc, excludeIds=[]){
+    return PROS
+      .filter(p => p.cat === catId && !excludeIds.includes(p.id))
+      .map(p => {
+        const distKm = haversine(loc.lat,loc.lng,p.lat,p.lng);
+        return { ...p, distKm, distMi:kmToMi(distKm),
+                 etaMin:estEta(distKm), avail:this.available(p) };
+      })
+      .sort((a,b)=>{
+        if(a.avail !== b.avail) return a.avail ? -1 : 1; // available first
+        return a.distKm - b.distKm;                      // then nearest
+      });
+  },
+  // only the bookable ones (available + sorted nearest-first)
+  bookable(catId, loc, excludeIds=[]){
+    return this.rankPros(catId,loc,excludeIds).filter(p=>p.avail);
+  }
+};
+
+/* ---------------------------------------------------------------------------
+   SERVICE — Realtime backend  (simulated; swap for Firebase Realtime DB)
+   Syncs booking state between the consumer device and the pro device.
+   In this prototype "devices" = browser tabs/windows, linked by
+   BroadcastChannel + localStorage. For production, replace getStore/commit/
+   _broadcast with firebase.database().ref(...).on('value') / .update().
+--------------------------------------------------------------------------- */
+const RealtimeService = (()=>{
+  const KEY = 'servivo:store:v3';
+  const listeners = [];
+  let store = load();
+  let bc = null;
+  try{
+    bc = new BroadcastChannel('servivo');
+    bc.onmessage = e => { store = e.data; emit(false); };
+  }catch(_){ /* older browser: localStorage events still work */ }
+  window.addEventListener('storage', e=>{
+    if(e.key===KEY && e.newValue){ store = JSON.parse(e.newValue); emit(false); }
+  });
+
+  function fresh(){ return { bookings:{}, proStatus:{}, rev:0 }; }
+  function load(){
+    try{ return JSON.parse(localStorage.getItem(KEY)) || fresh(); }
+    catch(_){ return fresh(); }
+  }
+  function persist(){ try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(_){} }
+  function emit(broadcast){
+    if(broadcast){ persist(); if(bc) bc.postMessage(store); }
+    listeners.forEach(fn=>fn());
+  }
+  return {
+    subscribe(fn){ listeners.push(fn); },
+    // commit mutates shared state then notifies every device
+    commit(mutator){ mutator(store); store.rev++; emit(true); },
+    bookings(){ return Object.values(store.bookings); },
+    getBooking(id){ return id ? store.bookings[id] : null; },
+    saveBooking(b){ this.commit(s=>{ s.bookings[b.id]=b; }); },
+    updateBooking(id,fn){ this.commit(s=>{ if(s.bookings[id]) fn(s.bookings[id]); }); },
+    proStatus(id){ return store.proStatus[id]; },
+    setProOnline(id,on){ this.commit(s=>{ s.proStatus[id]={online:on}; }); },
+    resetAll(){ this.commit(s=>{ s.bookings={}; s.proStatus={}; }); },
+  };
+})();
+
+/* ---------------------------------------------------------------------------
+   SERVICE — Auth  (simulated; swap for Firebase Auth)
+   Separate flows: consumers sign in with a name; pros pick their pro profile.
+--------------------------------------------------------------------------- */
+const AuthService = {
+  consumerSignIn(name, loc){
+    return { role:'consumer', name:name||'Guest', loc };
+  },
+  proSignIn(proId){
+    const p = proById(proId);
+    return { role:'pro', proId, name:p.name };
+  }
+};
+
+/* ---------------------------------------------------------------------------
+   SERVICE — Notifications (Web Notifications API; swap for FCM push)
+--------------------------------------------------------------------------- */
+const NotificationService = {
+  async requestPermission(){
+    try{ if('Notification' in window && Notification.permission==='default')
+      await Notification.requestPermission(); }catch(_){}
+  },
+  push(title, body, opts={}){
+    // 1) OS notification when permitted (true push -> FCM in production)
+    try{
+      if('Notification' in window && Notification.permission==='granted'){
+        new Notification(title,{ body, tag:'servivo', renotify:true });
+      }
+    }catch(_){}
+    // 2) always show an in-app toast so the demo works without OS permission
+    toast(opts.icon||'🔔', title, body);
+    if(opts.sound!==false) beep();
+  }
+};
+function beep(){
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type='sine'; o.frequency.value=880;
+    g.gain.setValueAtTime(.0001,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.25,ctx.currentTime+.03);
+    g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.45);
+    o.start(); o.stop(ctx.currentTime+.45);
+  }catch(_){}
+}
+function toast(icon,title,body){
+  const wrap = $('#toasts');
+  const el = document.createElement('div');
+  el.className='toast';
+  el.innerHTML = `<div class="ic">${icon}</div><div><div class="tt">${esc(title)}</div>${body?`<div class="tb">${esc(body)}</div>`:''}</div>`;
+  wrap.appendChild(el);
+  setTimeout(()=>{ el.style.transition='.3s'; el.style.opacity='0'; el.style.transform='translateY(-120%)';
+    setTimeout(()=>el.remove(),320); }, 4200);
+}
+
+/* ---------------------------------------------------------------------------
+   SERVICE — Map  (Mapbox GL when a token is set; built-in fallback otherwise)
+   The map node is kept alive across screen changes so it never reloads tiles.
+--------------------------------------------------------------------------- */
+const liveMapEl = document.createElement('div');
+liveMapEl.id = 'liveMap';
+const MapService = (()=>{
+  const BBOX = {minLat:32.62, maxLat:33.00, minLng:-97.06, maxLng:-96.62};
+  let mode=null, mb=null, mbReady=false, mbMarkers={}, queued=null, fbBuilt=false, fbMarkers={};
+
+  function useMapbox(){ return !!(CONFIG.MAPBOX_TOKEN && window.mapboxgl); }
+
+  function project(lat,lng,w,h){
+    let x = (lng-BBOX.minLng)/(BBOX.maxLng-BBOX.minLng)*w;
+    let y = (BBOX.maxLat-lat)/(BBOX.maxLat-BBOX.minLat)*h;
+    return { x:Math.max(20,Math.min(w-20,x)), y:Math.max(24,Math.min(h-14,y)) };
+  }
+
+  /* ---- Fallback map (no token needed) ---- */
+  function buildFallback(){
+    liveMapEl.innerHTML =
+      `<div class="fb-bg"></div>
+       <div class="fb-water" style="left:-6%;top:58%;width:46%;height:30%"></div>
+       <div class="fb-park"  style="left:62%;top:10%;width:30%;height:24%"></div>
+       <div class="fb-road" style="left:0;top:46%;width:100%;height:9px"></div>
+       <div class="fb-road" style="left:0;top:22%;width:100%;height:6px"></div>
+       <div class="fb-road" style="left:0;top:74%;width:100%;height:6px"></div>
+       <div class="fb-road" style="left:30%;top:0;width:9px;height:100%"></div>
+       <div class="fb-road" style="left:66%;top:0;width:6px;height:100%"></div>
+       <svg class="fb-svg" id="fbSvg"></svg>
+       <div class="fb-markers" id="fbMk"></div>
+       <div class="maptag">Built-in map · add a Mapbox token for live tiles</div>`;
+    fbBuilt = true; fbMarkers = {};
+  }
+  function paintFallback(opts){
+    if(mode!=='fb'){ buildFallback(); mode='fb'; }
+    else if(!fbBuilt){ buildFallback(); }
+    const w = liveMapEl.clientWidth||420, h = liveMapEl.clientHeight||230;
+    const layer = $('#fbMk',liveMapEl), svg = $('#fbSvg',liveMapEl);
+    if(!layer) return;
+    // route line
+    if(opts.line){
+      const a=project(opts.line[0].lat,opts.line[0].lng,w,h);
+      const b=project(opts.line[1].lat,opts.line[1].lng,w,h);
+      svg.innerHTML=`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"
+        stroke="#5b5bd6" stroke-width="3" stroke-dasharray="6 5" stroke-linecap="round"/>`;
+    } else svg.innerHTML='';
+    // markers (diffed by id so en-route movement glides via CSS transition)
+    const seen={};
+    opts.markers.forEach(m=>{
+      seen[m.id]=1;
+      const p=project(m.lat,m.lng,w,h);
+      let el=fbMarkers[m.id];
+      if(!el){
+        el=document.createElement('div');
+        fbMarkers[m.id]=el; layer.appendChild(el);
+        if(m.kind==='me'){
+          const pl=document.createElement('div'); pl.className='pulse';
+          pl.style.left=p.x+'px'; pl.style.top=p.y+'px'; pl.dataset.pulse=m.id;
+          layer.appendChild(pl);
+        }
+      }
+      el.className='mk '+m.kind+(m.moving?' moving':'');
+      el.style.left=p.x+'px'; el.style.top=p.y+'px';
+      el.innerHTML=`<div class="pin"><span>${m.glyph}</span></div>`+
+                   (m.label?`<div class="lbl">${esc(m.label)}</div>`:'');
+      const pulse=$(`[data-pulse="${m.id}"]`,layer);
+      if(pulse){ pulse.style.left=p.x+'px'; pulse.style.top=p.y+'px'; }
+    });
+    Object.keys(fbMarkers).forEach(id=>{
+      if(!seen[id]){ fbMarkers[id].remove(); delete fbMarkers[id];
+        const pulse=$(`[data-pulse="${id}"]`,layer); if(pulse) pulse.remove(); }
+    });
+  }
+
+  /* ---- Mapbox map ---- */
+  function paintMapbox(opts){
+    if(mode!=='mb'){ liveMapEl.innerHTML=''; mode='mb'; mbMarkers={}; }
+    if(!mb){
+      mapboxgl.accessToken = CONFIG.MAPBOX_TOKEN;
+      mb = new mapboxgl.Map({
+        container: liveMapEl, style:'mapbox://styles/mapbox/streets-v12',
+        center:[opts.center.lng,opts.center.lat], zoom:11
+      });
+      mb.on('load',()=>{
+        mbReady=true;
+        mb.addSource('route',{type:'geojson',data:emptyLine()});
+        mb.addLayer({id:'route',type:'line',source:'route',
+          paint:{'line-color':'#5b5bd6','line-width':3,'line-dasharray':[2,1.5]}});
+        if(queued){ const q=queued; queued=null; applyMapbox(q); }
+      });
+      return;
+    }
+    if(!mbReady){ queued=opts; return; }
+    applyMapbox(opts);
+  }
+  function emptyLine(){ return {type:'Feature',geometry:{type:'LineString',coordinates:[]}}; }
+  function applyMapbox(opts){
+    const seen={};
+    opts.markers.forEach(m=>{
+      seen[m.id]=1;
+      let mk=mbMarkers[m.id];
+      if(!mk){
+        const el=document.createElement('div');
+        el.className='mk '+m.kind+(m.moving?' moving':'');
+        el.innerHTML=`<div class="pin"><span>${m.glyph}</span></div>`+
+                     (m.label?`<div class="lbl">${esc(m.label)}</div>`:'');
+        mk=new mapboxgl.Marker({element:el,anchor:'bottom'})
+              .setLngLat([m.lng,m.lat]).addTo(mb);
+        mbMarkers[m.id]=mk;
+      } else {
+        mk.setLngLat([m.lng,m.lat]);
+        mk.getElement().className='mk '+m.kind+(m.moving?' moving':'');
+      }
+    });
+    Object.keys(mbMarkers).forEach(id=>{
+      if(!seen[id]){ mbMarkers[id].remove(); delete mbMarkers[id]; }
+    });
+    const data = opts.line
+      ? {type:'Feature',geometry:{type:'LineString',
+         coordinates:[[opts.line[0].lng,opts.line[0].lat],[opts.line[1].lng,opts.line[1].lat]]}}
+      : emptyLine();
+    if(mb.getSource('route')) mb.getSource('route').setData(data);
+    mb.easeTo({center:[opts.center.lng,opts.center.lat],duration:600});
+  }
+
+  return {
+    paint(opts){ useMapbox() ? paintMapbox(opts) : paintFallback(opts); },
+    resize(){ if(mb&&mbReady) mb.resize(); }
+  };
+})();
+
+/* ===========================================================================
+   APPLICATION STATE + UI
+=========================================================================== */
+let state = {
+  screen:'role',          // role | c-login | c-home | pro-login | p-dash
+  user:null,              // {role:'consumer'|'pro', ...}
+  category:null,
+  activeBookingId:null,
+  candidates:[],          // ranked bookable pros for current search
+  candidateIdx:0,
+  rejected:[],            // pro ids the consumer was turned down by
+  locating:false,
+};
+let enrouteTimer=null, renderQueued=false;
+
+RealtimeService.subscribe(()=>scheduleRender());
+function scheduleRender(){
+  if(renderQueued) return;
+  renderQueued=true;
+  requestAnimationFrame(()=>{ renderQueued=false; render(); });
+}
+
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const initials = n => n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+const money = n => '$'+n;
+function fmtClock(ts){
+  return new Date(ts).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+}
+
+/* ----- the consumer's current booking, derived from the realtime store ----- */
+function activeBooking(){ return RealtimeService.getBooking(state.activeBookingId); }
+/* ----- a pro's relevant booking ----- */
+function proIncoming(proId){
+  return RealtimeService.bookings()
+    .find(b=>b.proId===proId && b.status==='requested');
+}
+function proActive(proId){
+  return RealtimeService.bookings()
+    .find(b=>b.proId===proId && ['enroute','arrived'].includes(b.status));
+}
+
+/* ===========================================================================
+   RENDER
+=========================================================================== */
+function render(){
+  const app=$('#app');
+  let screen=state.screen;
+
+  // consumers: derive screen from their live booking
+  if(state.user && state.user.role==='consumer'){
+    const b=activeBooking();
+    if(b){
+      if(b.status==='requested') screen='c-wait';
+      else if(b.status==='enroute'||b.status==='arrived') screen='c-track';
+      else if(b.status==='completed') screen='c-done';
+      else if(b.status==='rejected') screen='c-rejected';
+      else if(b.status==='cancelled'){ state.activeBookingId=null; screen='c-home'; }
+    } else if(state.screen!=='c-login'){ screen='c-home'; }
+  }
+
+  let html='';
+  if(screen==='role')        html=viewRole();
+  else if(screen==='c-login')html=viewConsumerLogin();
+  else if(screen==='c-home') html=viewConsumerHome();
+  else if(screen==='c-wait') html=viewConsumerWait();
+  else if(screen==='c-track')html=viewConsumerTrack();
+  else if(screen==='c-rejected')html=viewConsumerRejected();
+  else if(screen==='c-done') html=viewConsumerDone();
+  else if(screen==='pro-login')html=viewProLogin();
+  else if(screen==='p-dash') html=viewProDash();
+  app.innerHTML=`<div class="screen" data-screen="${screen}">${html}</div>`;
+
+  // re-attach the persistent live map node, if this screen shows a map
+  const slot=$('#mapSlot');
+  if(slot){
+    slot.appendChild(liveMapEl);
+    const opts=computeMapOpts(screen);
+    requestAnimationFrame(()=>{ MapService.resize(); if(opts) MapService.paint(opts); });
+  }
+  state._screen=screen;
+}
+
+/* ---- map options per screen ---- */
+function computeMapOpts(screen){
+  if(screen==='c-home'){
+    const loc=state.user.loc;
+    const markers=[{id:'me',kind:'me',glyph:'🏠',lat:loc.lat,lng:loc.lng,label:'You'}];
+    if(state.category){
+      Scheduling.rankPros(state.category,loc).forEach(p=>{
+        markers.push({id:p.id,kind:p.avail?'avail':'busy',
+          glyph:catOf(p.cat).icon,lat:p.lat,lng:p.lng});
+      });
+    }
+    return {center:loc,markers};
+  }
+  if(screen==='c-wait'||screen==='c-track'){
+    const b=activeBooking(); if(!b) return null;
+    const pos=b.proPos||{lat:b.proHome.lat,lng:b.proHome.lng};
+    const moving=b.status==='enroute';
+    return {
+      center:{lat:(pos.lat+b.consumer.lat)/2,lng:(pos.lng+b.consumer.lng)/2},
+      markers:[
+        {id:'me',kind:'me',glyph:'🏠',lat:b.consumer.lat,lng:b.consumer.lng,label:'You'},
+        {id:b.proId,kind:'sel',glyph:'🚐',lat:pos.lat,lng:pos.lng,
+         label:b.proName.split(' ')[0],moving}
+      ],
+      line:[pos,{lat:b.consumer.lat,lng:b.consumer.lng}]
+    };
+  }
+  if(screen==='p-dash'){
+    const job=proActive(state.user.proId)||proIncoming(state.user.proId);
+    const me=proById(state.user.proId);
+    if(job){
+      const pos=job.proPos||{lat:me.lat,lng:me.lng};
+      return {
+        center:{lat:(pos.lat+job.consumer.lat)/2,lng:(pos.lng+job.consumer.lng)/2},
+        markers:[
+          {id:'cust',kind:'me',glyph:'📍',lat:job.consumer.lat,lng:job.consumer.lng,label:job.consumer.name},
+          {id:'me',kind:'sel',glyph:'🚐',lat:pos.lat,lng:pos.lng,label:'You',
+           moving:job.status==='enroute'}
+        ],
+        line:[pos,{lat:job.consumer.lat,lng:job.consumer.lng}]
+      };
+    }
+    return {center:{lat:me.lat,lng:me.lng},
+      markers:[{id:'me',kind:'avail',glyph:catOf(me.cat).icon,lat:me.lat,lng:me.lng,label:'You'}]};
+  }
+  return null;
+}
+
+/* ---------------------------- SCREENS: shared ---------------------------- */
+function logo(sz=20){
+  return `<svg width="${sz}" height="${sz}" viewBox="0 0 40 40" fill="none">
+    <path d="M20 4c-7 0-12 5-12 12 0 8 12 20 12 20s12-12 12-20c0-7-5-12-12-12z" fill="#13b5a6"/>
+    <path d="M21.5 13l-7 9h5l-1.5 6 7-9h-5z" fill="#fff"/></svg>`;
+}
+function appbar(title,sub,pro){
+  return `<div class="appbar${pro?' pro':''}">
+    ${logo(22)}
+    <div><div class="title">${esc(title)}</div>${sub?`<div class="sub">${esc(sub)}</div>`:''}</div>
+    <div class="spacer"></div>
+    <button class="iconbtn" data-act="open-help" title="Demo guide">?</button>
+    <button class="iconbtn" data-act="switch-role" title="Switch role">⇄</button>
+  </div>`;
+}
+
+/* ------------------------------ ROLE PICKER ------------------------------ */
+function viewRole(){
+  return `
+  <div class="hero">
+    <div class="logo">${logo(46)}</div>
+    <div class="brandname">Servivo</div>
+    <div class="tagline">Help, on the way.</div>
+    <div class="heronote">Book a vetted local pro who can be at your door
+      within the hour — see them live on the map as they head over.</div>
+  </div>
+  <div class="rolewrap">
+    <div class="label">Continue as</div>
+    <button class="rolecard c" data-act="go" data-screen="c-login">
+      <div class="ic">🙋</div>
+      <div><h3>I need a service</h3><p>Find the nearest available pro and book a visit now.</p></div>
+      <div class="arr">›</div>
+    </button>
+    <button class="rolecard p" data-act="go" data-screen="pro-login">
+      <div class="ic">🧰</div>
+      <div><h3>I'm a pro</h3><p>Receive nearby job requests and accept or decline.</p></div>
+      <div class="arr">›</div>
+    </button>
+    <div class="center" style="margin-top:6px">
+      <span class="help-link" data-act="open-help">How to run the two-sided demo</span>
+    </div>
+  </div>`;
+}
+
+/* --------------------------- CONSUMER: login ----------------------------- */
+function viewConsumerLogin(){
+  const loc=state._loc;
+  return `
+  ${appbar('Customer sign in','Servivo')}
+  <div class="body">
+    <div class="card">
+      <h3>Welcome 👋</h3>
+      <p class="muted">Tell us your name and we'll find pros near you. This is a
+        demo sign-in — production uses Firebase Auth (phone / email).</p>
+      <div style="height:12px"></div>
+      <div class="label">Your name</div>
+      <div style="height:6px"></div>
+      <input class="field" id="cName" placeholder="e.g. Anand" value="Anand" />
+      <div style="height:14px"></div>
+      <div class="label">Your location</div>
+      <div style="height:6px"></div>
+      <div class="row" style="background:var(--bg);border-radius:12px;padding:12px">
+        <div style="font-size:20px">📍</div>
+        <div class="grow">
+          <div style="font-weight:700;font-size:13.5px" id="locName">
+            ${loc?(loc.approx?'Approx. location set':'Live GPS location set'):'Not set yet'}</div>
+          <div class="tiny" id="locCoord">${loc?loc.lat.toFixed(4)+', '+loc.lng.toFixed(4):'Tap to detect'}</div>
+        </div>
+        <button class="btn ghost sm" style="width:auto;padding:9px 12px" data-act="locate">
+          ${state.locating?'Locating…':'Detect'}</button>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <button class="btn" data-act="consumer-login">Continue</button>
+  </div>`;
+}
+
+/* --------------------------- CONSUMER: home ------------------------------ */
+function viewConsumerHome(){
+  const loc=state.user.loc;
+  let listHtml='', countHtml='';
+  if(state.category){
+    const ranked=Scheduling.rankPros(state.category,loc,state.rejected);
+    const avail=ranked.filter(p=>p.avail);
+    countHtml=`<span class="chip ok">⚡ ${avail.length} available in the next hour</span>`;
+    listHtml = ranked.map(p=>proRow(p)).join('') ||
+      `<p class="muted">No ${catOf(state.category).name} pros found nearby.</p>`;
+  }
+  return `
+  ${appbar('Hi, '+state.user.name.split(' ')[0],'Find a pro near you')}
+  <div class="body">
+    <div class="map-slot" id="mapSlot"></div>
+
+    <div>
+      <div class="section-t">What do you need?</div>
+      <div style="height:8px"></div>
+      <div class="cat-grid">
+        ${CATEGORIES.map(c=>`
+          <button class="cat ${state.category===c.id?'on':''}" data-act="pick-cat" data-cat="${c.id}">
+            <div class="emo">${c.icon}</div>
+            <div class="nm">${c.name}</div>
+            <div class="ds">${c.desc}</div>
+          </button>`).join('')}
+      </div>
+    </div>
+
+    ${state.category?`
+    <div class="card">
+      <div class="row">
+        <h3 style="margin:0">${catOf(state.category).icon} ${catOf(state.category).name} pros</h3>
+      </div>
+      <div style="height:6px"></div>${countHtml}
+      <div style="height:6px"></div>
+      ${listHtml}
+    </div>`:`
+    <div class="card center">
+      <div class="bigemoji">👆</div>
+      <p class="muted">Pick a service to see pros who can reach you within the hour,
+        sorted by distance.</p>
+    </div>`}
+  </div>
+  ${state.category && Scheduling.bookable(state.category,loc,state.rejected).length?`
+  <div class="foot">
+    <button class="btn" data-act="request-nearest">
+      Request nearest available pro
+    </button>
+  </div>`:''}`;
+}
+function proRow(p){
+  const c=catOf(p.cat);
+  return `<div class="pro-row">
+    <div class="av" style="background:${p.color}">${initials(p.name)}
+      <span class="dot ${Scheduling.isOnline(p)?'on':''}"></span></div>
+    <div class="grow">
+      <div class="nm">${esc(p.name)}</div>
+      <div class="meta"><span class="star">★ ${p.rating}</span> · ${p.jobs} jobs · from ${money(p.rate)}</div>
+      <div style="margin-top:4px">${p.avail
+        ? `<span class="chip ok">Available now · ETA ~${p.etaMin} min</span>`
+        : `<span class="chip busy">Booked in next hour</span>`}</div>
+    </div>
+    <div class="right">
+      <div class="dist">${p.distMi.toFixed(1)} mi</div>
+      <div class="eta">${c.name}</div>
+    </div>
+  </div>`;
+}
+
+/* ------------------------ CONSUMER: waiting ------------------------------ */
+function viewConsumerWait(){
+  const b=activeBooking(), p=proById(b.proId);
+  return `
+  ${appbar('Finding your pro','Request sent')}
+  <div class="body">
+    <div class="statebox">
+      <div class="spinner"></div>
+      <h3 style="margin:6px 0 2px">Waiting for ${esc(b.proName.split(' ')[0])} to respond</h3>
+      <p class="muted">We sent your ${esc(catOf(b.cat).name)} request to the nearest
+        available pro. They can accept or decline.</p>
+    </div>
+    <div class="map-slot" id="mapSlot"></div>
+    <div class="card">
+      <div class="pro-row" style="border:none;padding-top:0">
+        <div class="av lg" style="background:${p.color}">${initials(p.name)}</div>
+        <div class="grow">
+          <div class="nm">${esc(p.name)}</div>
+          <div class="meta"><span class="star">★ ${p.rating}</span> · ${p.jobs} jobs</div>
+        </div>
+        <div class="right">
+          <div class="dist">${b.distMi.toFixed(1)} mi</div>
+          <div class="eta">~${b.etaMin} min away</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="kv"><span class="k">Service</span><span class="v">${esc(catOf(b.cat).name)}</span></div>
+      <div class="kv"><span class="k">Requested</span><span class="v">${fmtClock(b.createdAt)}</span></div>
+      <div class="kv"><span class="k">Est. visit fee</span><span class="v">from ${money(p.rate)}</span></div>
+    </div>
+    <p class="tiny center">Pro not responding? Open Servivo in a second window,
+      switch to <b>I'm a pro</b>, and sign in as the pro marked ⚡.</p>
+  </div>
+  <div class="foot">
+    <button class="btn ghost" data-act="cancel-booking">Cancel request</button>
+  </div>`;
+}
+
+/* ------------------------ CONSUMER: tracking ----------------------------- */
+function viewConsumerTrack(){
+  const b=activeBooking(), p=proById(b.proId);
+  const arrived=b.status==='arrived';
+  return `
+  ${appbar(arrived?'Your pro has arrived':'Your pro is on the way',
+           arrived?'At your location':'ETA ~'+b.etaMin+' min')}
+  <div class="body">
+    <div class="banner live">
+      <div style="font-size:26px">${arrived?'✅':'🚐'}</div>
+      <div class="grow">
+        <div style="font-weight:800;font-size:15px">
+          ${arrived?'Pro arrived':esc(p.name.split(' ')[0])+' is heading to you'}</div>
+        <div class="tiny">${arrived?'Meet your pro at the door':'Live ETA · '+b.etaMin+' min away'}</div>
+      </div>
+      ${!arrived?`<div style="text-align:right"><div class="dist">${b.etaMin}</div><div class="eta">min</div></div>`:''}
+    </div>
+    <div class="map-slot tall" id="mapSlot"></div>
+    <div class="card">
+      <div class="pro-row" style="border:none;padding:0">
+        <div class="av lg" style="background:${p.color}">${initials(p.name)}</div>
+        <div class="grow">
+          <div class="nm">${esc(p.name)}</div>
+          <div class="meta"><span class="star">★ ${p.rating}</span> · ${esc(catOf(b.cat).name)}</div>
+        </div>
+        <button class="iconbtn" style="background:var(--brand-l);color:var(--brand-d)">📞</button>
+        <button class="iconbtn" style="background:var(--brand-l);color:var(--brand-d)">💬</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="timeline">
+        <div class="tl done"><div class="ico"><div class="ball"></div><div class="line"></div></div>
+          <div class="txt"><b>Request accepted</b><br><span class="tiny">${fmtClock(b.acceptedAt)}</span></div></div>
+        <div class="tl ${arrived?'done':'now'}"><div class="ico"><div class="ball"></div><div class="line"></div></div>
+          <div class="txt"><b>${arrived?'Arrived at your location':'En route to you'}</b><br>
+            <span class="tiny">${arrived?fmtClock(Date.now()):'Tracking live'}</span></div></div>
+        <div class="tl ${arrived?'now':'pending'}"><div class="ico"><div class="ball"></div></div>
+          <div class="txt"><b>Job complete</b></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    ${arrived
+      ? `<button class="btn ok" data-act="complete-booking">Confirm job complete</button>`
+      : `<button class="btn ghost" data-act="cancel-booking">Cancel</button>`}
+  </div>`;
+}
+
+/* ------------------------ CONSUMER: rejected ----------------------------- */
+function viewConsumerRejected(){
+  const b=activeBooking();
+  const next=state.candidates[state.candidateIdx]||null;
+  return `
+  ${appbar('Pro unavailable','Servivo')}
+  <div class="body">
+    <div class="statebox">
+      <div class="bigemoji">😕</div>
+      <h3 style="margin:6px 0 2px">${esc(b.proName.split(' ')[0])} can't make it</h3>
+      <p class="muted">${next
+        ? 'No problem — the next nearest available '+esc(catOf(b.cat).name)+' pro is ready.'
+        : 'There are no other '+esc(catOf(b.cat).name)+' pros free in the next hour right now.'}</p>
+    </div>
+    ${next?`
+    <div class="card">
+      <div class="pro-row" style="border:none;padding:0">
+        <div class="av lg" style="background:${next.color}">${initials(next.name)}</div>
+        <div class="grow">
+          <div class="nm">${esc(next.name)}</div>
+          <div class="meta"><span class="star">★ ${next.rating}</span> · ${next.distMi.toFixed(1)} mi · ETA ~${next.etaMin} min</div>
+        </div>
+      </div>
+    </div>`:''}
+  </div>
+  <div class="foot">
+    ${next
+      ? `<button class="btn" data-act="request-next">Request ${esc(next.name.split(' ')[0])} →</button>`
+      : `<button class="btn ghost" data-act="restart-search">Back to search</button>`}
+  </div>`;
+}
+
+/* -------------------------- CONSUMER: done ------------------------------- */
+function viewConsumerDone(){
+  const b=activeBooking(), p=proById(b.proId);
+  return `
+  ${appbar('All done','Servivo')}
+  <div class="body">
+    <div class="statebox">
+      <div class="bigemoji">🎉</div>
+      <h3 style="margin:6px 0 2px">Job complete</h3>
+      <p class="muted">${esc(p.name)} finished your ${esc(catOf(b.cat).name).toLowerCase()} visit.
+        Rate your experience:</p>
+      <div style="font-size:30px;letter-spacing:6px;margin-top:8px">★★★★★</div>
+    </div>
+    <div class="card">
+      <div class="kv"><span class="k">Pro</span><span class="v">${esc(p.name)}</span></div>
+      <div class="kv"><span class="k">Service</span><span class="v">${esc(catOf(b.cat).name)}</span></div>
+      <div class="kv"><span class="k">Visit fee</span><span class="v">${money(p.rate)}</span></div>
+      <div class="kv"><span class="k">Completed</span><span class="v">${fmtClock(b.completedAt||Date.now())}</span></div>
+    </div>
+  </div>
+  <div class="foot">
+    <button class="btn" data-act="book-another">Book another service</button>
+  </div>`;
+}
+
+/* ----------------------------- PRO: login -------------------------------- */
+function viewProLogin(){
+  const groups=CATEGORIES.map(c=>{
+    const list=PROS.filter(p=>p.cat===c.id).map(p=>{
+      const pending=proIncoming(p.id);
+      return `<button class="pro-row" style="width:100%;text-align:left"
+        data-act="pro-login" data-pro="${p.id}">
+        <div class="av" style="background:${p.color}">${initials(p.name)}
+          <span class="dot ${Scheduling.isOnline(p)?'on':''}"></span></div>
+        <div class="grow">
+          <div class="nm">${esc(p.name)}</div>
+          <div class="meta"><span class="star">★ ${p.rating}</span> · ${p.jobs} jobs</div>
+        </div>
+        ${pending?`<span class="chip bolt">⚡ New request</span>`
+          :`<span class="chip ${Scheduling.available(p)?'ok':'busy'}">
+             ${Scheduling.available(p)?'Free now':'Busy'}</span>`}
+      </button>`;
+    }).join('');
+    return `<div class="card"><h3>${c.icon} ${c.name}</h3>
+      <div style="height:4px"></div>${list}</div>`;
+  }).join('');
+  return `
+  ${appbar('Pro sign in','Pick your profile',true)}
+  <div class="body">
+    <div class="card" style="background:var(--pro-l);box-shadow:none">
+      <p class="muted" style="color:var(--pro-d)">This is the <b>pro</b> side of Servivo.
+        Choose a pro profile to sign in. A ⚡ badge means a customer is requesting
+        that pro right now — pick them to accept or decline.</p>
+    </div>
+    ${groups}
+  </div>`;
+}
+
+/* --------------------------- PRO: dashboard ------------------------------ */
+function viewProDash(){
+  const me=proById(state.user.proId);
+  const online=Scheduling.isOnline(me);
+  const free=Scheduling.freeNextHour(me);
+  const incoming=proIncoming(me.id);
+  const job=proActive(me.id);
+
+  // next-hour availability bar
+  const now=Date.now();
+  let blocks='';
+  me.busy.forEach(([s,e])=>{
+    const bs=APP_LOAD+s*60000, be=APP_LOAD+e*60000;
+    const cs=Math.max(bs,now), ce=Math.min(be,now+3600000);
+    if(cs<ce){
+      const left=(cs-now)/3600000*100, w=(ce-cs)/3600000*100;
+      blocks+=`<div class="busyblk" style="left:${left}%;width:${w}%"></div>`;
+    }
+  });
+
+  return `
+  ${appbar(me.name.split(' ')[0]+"'s dashboard",catOf(me.cat).name+' pro',true)}
+  <div class="body">
+
+    ${incoming?`
+    <div class="banner req">
+      <div style="font-size:28px">📥</div>
+      <div class="grow">
+        <div style="font-weight:800;font-size:15px">New booking request</div>
+        <div class="tiny" style="opacity:.9">${esc(incoming.consumer.name)} ·
+          ${esc(catOf(incoming.cat).name)} · ${incoming.distMi.toFixed(1)} mi away</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row">
+        <div class="av lg" style="background:var(--pro)">${initials(incoming.consumer.name)}</div>
+        <div class="grow">
+          <div class="nm">${esc(incoming.consumer.name)}</div>
+          <div class="meta">Wants a ${esc(catOf(incoming.cat).name)} visit within the hour</div>
+        </div>
+      </div>
+      <div style="height:8px"></div>
+      <div class="map-slot" id="mapSlot"></div>
+      <div style="height:8px"></div>
+      <div class="kv"><span class="k">Distance</span><span class="v">${incoming.distMi.toFixed(1)} mi · ~${incoming.etaMin} min drive</span></div>
+      <div class="kv"><span class="k">Requested</span><span class="v">${fmtClock(incoming.createdAt)}</span></div>
+      <div class="kv"><span class="k">Est. payout</span><span class="v">${money(me.rate)}</span></div>
+      <div style="height:12px"></div>
+      <div class="btnrow">
+        <button class="btn bad" data-act="pro-reject" data-id="${incoming.id}">Decline</button>
+        <button class="btn ok"  data-act="pro-accept" data-id="${incoming.id}">Accept job</button>
+      </div>
+    </div>`:''}
+
+    ${job?`
+    <div class="banner live">
+      <div style="font-size:24px">${job.status==='arrived'?'📍':'🚐'}</div>
+      <div class="grow">
+        <div style="font-weight:800;font-size:14px">Active job · ${esc(job.consumer.name)}</div>
+        <div class="tiny">${job.status==='arrived'?'You marked arrived':'En route · ETA ~'+job.etaMin+' min'}</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="map-slot" id="mapSlot"></div>
+      <div style="height:8px"></div>
+      <div class="kv"><span class="k">Customer</span><span class="v">${esc(job.consumer.name)}</span></div>
+      <div class="kv"><span class="k">Service</span><span class="v">${esc(catOf(job.cat).name)}</span></div>
+      <div class="kv"><span class="k">Distance</span><span class="v">${job.distMi.toFixed(1)} mi</span></div>
+      <div style="height:12px"></div>
+      ${job.status==='enroute'
+        ? `<button class="btn" data-act="pro-arrived" data-id="${job.id}">I've arrived</button>`
+        : `<button class="btn ok" data-act="pro-complete" data-id="${job.id}">Complete job</button>`}
+    </div>`:''}
+
+    ${!incoming && !job?`
+    <div class="card center">
+      <div class="bigemoji">${online?'🟢':'⚪'}</div>
+      <h3>${online?'You\'re online':'You\'re offline'}</h3>
+      <p class="muted">${online
+        ? 'You\'ll be notified the moment a nearby customer requests you.'
+        : 'Go online to start receiving job requests.'}</p>
+    </div>`:''}
+
+    <div class="card">
+      <div class="row">
+        <div class="grow">
+          <h3 style="margin:0">Availability</h3>
+          <div class="tiny">${online?'Visible to customers':'Hidden from search'}</div>
+        </div>
+        <div class="switch ${online?'on':''}" data-act="toggle-online"></div>
+      </div>
+      <div class="divider" style="margin:12px 0"></div>
+      <div class="label">Next 60 minutes ${free
+        ? '<span class="chip ok" style="margin-left:6px">Open</span>'
+        : '<span class="chip warn" style="margin-left:6px">Partly booked</span>'}</div>
+      <div style="height:8px"></div>
+      <div class="hourbar"><div class="now"></div>${blocks}</div>
+      <div class="hourticks"><span>now</span><span>+30 min</span><span>+60 min</span></div>
+      <p class="tiny" style="margin-top:8px">Servivo only shows you to customers when this
+        window is clear and you're online.</p>
+    </div>
+
+    <div class="card">
+      <h3>Today's stats</h3>
+      <div style="height:6px"></div>
+      <div class="kv"><span class="k">Rating</span><span class="v star">★ ${me.rating}</span></div>
+      <div class="kv"><span class="k">Lifetime jobs</span><span class="v">${me.jobs}</span></div>
+      <div class="kv"><span class="k">Visit rate</span><span class="v">${money(me.rate)}</span></div>
+    </div>
+  </div>`;
+}
+
+/* ===========================================================================
+   ACTIONS
+=========================================================================== */
+document.addEventListener('click', e=>{
+  const t=e.target.closest('[data-act]');
+  if(!t) return;
+  const act=t.dataset.act;
+  ACTIONS[act] && ACTIONS[act](t);
+});
+
+const ACTIONS = {
+  go(t){ state.screen=t.dataset.screen; render();
+    if(t.dataset.screen==='c-login' && !state._loc) doLocate(); },
+
+  'open-help'(){ showHelp(); },
+  'close-help'(){ $('#modalRoot').innerHTML=''; },
+
+  'switch-role'(){
+    if(enrouteTimer){ clearInterval(enrouteTimer); enrouteTimer=null; }
+    state={screen:'role',user:null,category:null,activeBookingId:null,
+           candidates:[],candidateIdx:0,rejected:[],locating:false,_loc:state._loc};
+    render();
+  },
+
+  /* ---- consumer ---- */
+  locate(){ doLocate(); },
+  'consumer-login'(){
+    const name=($('#cName')&&$('#cName').value.trim())||'Guest';
+    const loc=state._loc||{...DEFAULT_LOC,approx:true};
+    state.user=AuthService.consumerSignIn(name,loc);
+    state.screen='c-home'; state.category=null; state.rejected=[];
+    // re-attach to an in-progress booking (e.g. after switching roles mid-demo)
+    const live=RealtimeService.bookings()
+      .filter(b=>b.consumer.name===name && ['requested','enroute','arrived'].includes(b.status))
+      .sort((a,b)=>b.createdAt-a.createdAt)[0];
+    state.activeBookingId = live ? live.id : null;
+    render();
+  },
+  'pick-cat'(t){ state.category=t.dataset.cat; state.rejected=[]; render(); },
+
+  'request-nearest'(){
+    const list=Scheduling.bookable(state.category,state.user.loc,state.rejected);
+    if(!list.length){ toast('😕','No pros available','Try another service.'); return; }
+    state.candidates=list; state.candidateIdx=0;
+    createBooking(list[0]);
+  },
+  'request-next'(){
+    const next=state.candidates[state.candidateIdx];
+    if(next) createBooking(next);
+  },
+  'cancel-booking'(){
+    const b=activeBooking(); if(!b) return;
+    RealtimeService.updateBooking(b.id,bk=>{ bk.status='cancelled'; });
+    if(enrouteTimer){ clearInterval(enrouteTimer); enrouteTimer=null; }
+    state.activeBookingId=null; state.candidates=[]; state.rejected=[];
+    toast('✖️','Request cancelled','');
+    render();
+  },
+  'restart-search'(){
+    state.activeBookingId=null; state.candidates=[]; state.rejected=[];
+    render();
+  },
+  'complete-booking'(){
+    const b=activeBooking(); if(!b) return;
+    RealtimeService.updateBooking(b.id,bk=>{ bk.status='completed'; bk.completedAt=Date.now(); });
+  },
+  'book-another'(){
+    state.activeBookingId=null; state.category=null;
+    state.candidates=[]; state.rejected=[];
+    state.screen='c-home'; render();
+  },
+
+  /* ---- pro ---- */
+  'pro-login'(t){
+    state.user=AuthService.proSignIn(t.dataset.pro);
+    state.screen='p-dash';
+    NotificationService.requestPermission();
+    render();
+  },
+  'toggle-online'(){
+    const me=proById(state.user.proId);
+    RealtimeService.setProOnline(me.id,!Scheduling.isOnline(me));
+  },
+  'pro-accept'(t){
+    const b=RealtimeService.getBooking(t.dataset.id); if(!b) return;
+    const me=proById(b.proId);
+    RealtimeService.updateBooking(b.id,bk=>{
+      bk.status='enroute'; bk.acceptedAt=Date.now();
+      bk.proHome={lat:me.lat,lng:me.lng};
+      bk.proPos={lat:me.lat,lng:me.lng};
+    });
+    startEnroute(b.id);
+    toast('✅','Job accepted','Navigate to the customer.');
+  },
+  'pro-reject'(t){
+    const b=RealtimeService.getBooking(t.dataset.id); if(!b) return;
+    RealtimeService.updateBooking(b.id,bk=>{
+      bk.status='rejected'; bk.rejectedAt=Date.now();
+    });
+    toast('↩️','Request declined','');
+  },
+  'pro-arrived'(t){
+    if(enrouteTimer){ clearInterval(enrouteTimer); enrouteTimer=null; }
+    RealtimeService.updateBooking(t.dataset.id,bk=>{
+      bk.status='arrived'; bk.etaMin=0;
+      bk.proPos={lat:bk.consumer.lat,lng:bk.consumer.lng};
+    });
+  },
+  'pro-complete'(t){
+    RealtimeService.updateBooking(t.dataset.id,bk=>{
+      bk.status='completed'; bk.completedAt=Date.now();
+    });
+    toast('🎉','Job completed','Nice work!');
+  },
+};
+
+/* --------------------- consumer-side helpers ----------------------------- */
+function createBooking(pro){
+  // mark earlier candidate (if any) as rejected-from list
+  const id='bk_'+Date.now()+'_'+Math.floor(Math.random()*999);
+  const booking={
+    id, proId:pro.id, proName:pro.name, cat:state.category, status:'requested',
+    consumer:{name:state.user.name,lat:state.user.loc.lat,lng:state.user.loc.lng},
+    distKm:pro.distKm, distMi:pro.distMi, etaMin:pro.etaMin,
+    proHome:{lat:pro.lat,lng:pro.lng}, proPos:{lat:pro.lat,lng:pro.lng},
+    createdAt:Date.now()
+  };
+  RealtimeService.saveBooking(booking);
+  state.activeBookingId=id;
+  // advance candidate pointer so a decline can roll to the next pro
+  state.candidateIdx=state.candidates.findIndex(c=>c.id===pro.id)+1;
+  state.rejected=[...new Set([...state.rejected,
+    ...state.candidates.slice(0,state.candidateIdx-1).map(c=>c.id)])];
+  toast('📨','Request sent','Sent to '+pro.name.split(' ')[0]+' — your nearest pro.');
+  render();
+}
+
+/* react to booking changes for the logged-in user (push notifications).
+   Bookings already in the store when this device loaded are not re-announced;
+   anything that arrives or changes afterwards triggers a notification. */
+let _seenAtLoad = new Set(RealtimeService.bookings().map(b=>b.id));
+let _notifiedReq = new Set();   // request IDs the pro was already alerted to
+let _lastStatus  = {};          // booking id -> last status seen
+RealtimeService.subscribe(()=>{
+  if(!state.user) return;
+  RealtimeService.bookings().forEach(b=>{
+    const prev=_lastStatus[b.id];
+    _lastStatus[b.id]=b.status;
+
+    // ---- PRO: a brand-new request for me ----
+    if(state.user.role==='pro' && b.proId===state.user.proId){
+      if(b.status==='requested' && !_seenAtLoad.has(b.id) && !_notifiedReq.has(b.id)){
+        _notifiedReq.add(b.id);
+        NotificationService.push('New booking request 📥',
+          b.consumer.name+' needs '+catOf(b.cat).name+' — '+b.distMi.toFixed(1)+' mi away.',
+          {icon:'📥'});
+      }
+      if(b.status==='cancelled' && prev && prev!=='cancelled')
+        NotificationService.push('Request cancelled',
+          b.consumer.name+' cancelled the request.',{icon:'✖️'});
+    }
+
+    // ---- CONSUMER: my pro responded / progressed ----
+    if(state.user.role==='consumer' && b.id===state.activeBookingId && prev && prev!==b.status){
+      if(b.status==='enroute')
+        NotificationService.push('Request accepted! 🎉',
+          b.proName+' is on the way to you.',{icon:'✅'});
+      if(b.status==='rejected'){
+        state.candidateIdx=state.candidates.findIndex(c=>c.id===b.proId)+1;
+        NotificationService.push('Pro unavailable',
+          b.proName+' declined — pick the next nearest.',{icon:'😕'});
+      }
+      if(b.status==='arrived')
+        NotificationService.push('Your pro has arrived 📍',
+          b.proName+' is at your location.',{icon:'📍'});
+    }
+  });
+});
+
+/* en-route simulation: pro glides toward the consumer, ETA counts down.
+   Runs in the accepting pro's tab; positions are synced via RealtimeService. */
+function startEnroute(bookingId){
+  if(enrouteTimer) clearInterval(enrouteTimer);
+  const b0=RealtimeService.getBooking(bookingId); if(!b0) return;
+  const home={...b0.proHome}, dest={...b0.consumer};
+  const totalEta=b0.etaMin;
+  const steps=22; let i=0;
+  enrouteTimer=setInterval(()=>{
+    i++;
+    const t=Math.min(1,i/steps);
+    const lat=home.lat+(dest.lat-home.lat)*t;
+    const lng=home.lng+(dest.lng-home.lng)*t;
+    RealtimeService.updateBooking(bookingId,bk=>{
+      if(!bk||['cancelled','completed','arrived'].includes(bk.status)) return;
+      bk.proPos={lat,lng};
+      bk.etaMin=Math.max(0,Math.ceil(totalEta*(1-t)));
+      if(t>=1){ bk.status='arrived'; bk.etaMin=0; }
+    });
+    if(i>=steps){ clearInterval(enrouteTimer); enrouteTimer=null; }
+  },2400);
+}
+
+/* ----------------------------- geolocation ------------------------------- */
+function doLocate(){
+  state.locating=true; render();
+  const done=(loc)=>{ state._loc=loc; state.locating=false; render(); };
+  if(!('geolocation' in navigator)){ done({...DEFAULT_LOC,approx:true}); return; }
+  navigator.geolocation.getCurrentPosition(
+    pos=>done({lat:pos.coords.latitude,lng:pos.coords.longitude,approx:false}),
+    ()=>{ // denied / unavailable (common on file://) -> fall back to DFW
+      done({...DEFAULT_LOC,approx:true});
+      toast('📍','Using approximate location','Enable location for precise results.');
+    },
+    {timeout:7000}
+  );
+}
+
+/* -------------------------------- modal ---------------------------------- */
+function showHelp(){
+  $('#modalRoot').innerHTML=`
+  <div class="modal-bg" data-act="close-help">
+    <div class="modal" onclick="event.stopPropagation()">
+      <h2>Running the demo</h2>
+      <p class="muted">Servivo is two-sided — a customer books, a pro responds.
+        You can play both sides:</p>
+      <div style="height:10px"></div>
+      <div class="card" style="box-shadow:none;background:var(--bg)">
+        <b style="font-size:13.5px">Best: two windows</b>
+        <p class="muted">Open this file in two browser windows. In one, choose
+          <b>I need a service</b>; in the other, <b>I'm a pro</b>. A booking made
+          in one window appears live in the other.</p>
+      </div>
+      <div style="height:8px"></div>
+      <div class="card" style="box-shadow:none;background:var(--bg)">
+        <b style="font-size:13.5px">Or: one window</b>
+        <p class="muted">Book as a customer, then tap <b>⇄</b> to switch to the pro
+          side and sign in as the pro showing a ⚡ badge. Accept the job, then
+          switch back to watch them arrive.</p>
+      </div>
+      <div style="height:14px"></div>
+      <div class="kv"><span class="k">Real map</span><span class="v">${CONFIG.MAPBOX_TOKEN?'Mapbox live':'Built-in (add token)'}</span></div>
+      <div class="kv"><span class="k">Realtime sync</span><span class="v">On (this device set)</span></div>
+      <div class="kv"><span class="k">Notifications</span><span class="v">${('Notification'in window)?Notification.permission:'n/a'}</span></div>
+      <div style="height:14px"></div>
+      <button class="btn ghost" data-act="reset-demo">Reset all demo data</button>
+      <div style="height:8px"></div>
+      <button class="btn" data-act="close-help">Got it</button>
+    </div>
+  </div>`;
+}
+ACTIONS['reset-demo']=()=>{
+  if(enrouteTimer){ clearInterval(enrouteTimer); enrouteTimer=null; }
+  RealtimeService.resetAll();
+  _seenAtLoad=new Set(); _notifiedReq=new Set(); _lastStatus={};
+  state.activeBookingId=null; state.candidates=[]; state.rejected=[];
+  $('#modalRoot').innerHTML='';
+  toast('♻️','Demo reset','');
+  render();
+};
+
+/* re-render on viewport resize so the layout + map adapt live between the
+   mobile (single-column) and desktop (two-pane) breakpoints */
+let _resizeT;
+window.addEventListener('resize',()=>{
+  clearTimeout(_resizeT);
+  _resizeT=setTimeout(()=>{ MapService.resize(); render(); },150);
+});
+
+/* -------------------------------- boot ----------------------------------- */
+render(); // Servivo prototype ready
+</script>
+</body>
+</html>
