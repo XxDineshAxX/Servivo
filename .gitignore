@@ -1,27 +1,45 @@
+# Dependencies
 node_modules/
 .pnpm-store/
+.pnp
+.pnp.js
+
+# Build outputs
 dist/
 build/
 .expo/
 *.tsbuildinfo
+
+# Environment variables
 .env
 .env.local
 .env.*.local
-!.env.example
-*.log
-.DS_Store
-Thumbs.db
+
+# IDE
 .vscode/
 .idea/
-coverage/
-.nyc_output/
-apps/mobile/ios/Pods/
-apps/mobile/android/.gradle/
-apps/mobile/android/app/build/
-apps/mobile/.expo/
-infra/terraform/.terraform/
-infra/terraform/*.tfstate
-infra/terraform/*.tfstate.backup
-infra/terraform/.terraform.lock.hcl
-*.pem
-*.key
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+infra/firebase/functions/lib/
+
+# Turbo
+.turbo/
+
+# Scratch files
+test_write.txt

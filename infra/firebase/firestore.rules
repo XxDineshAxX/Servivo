@@ -1,0 +1,46 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Users ───────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      // Users can read their own profile; pros are readable by any authenticated user
+      allow read: if request.auth != null &&
+        (request.auth.uid == userId ||
+         resource.data.role == 'pro');
+
+      // Only the owner can write their own profile
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // ─── Bookings ─────────────────────────────────────────────────────────────
+    match /bookings/{bookingId} {
+      // Consumer or pro on the booking can read it
+      allow read: if request.auth != null &&
+        (request.auth.uid == resource.data.consumerId ||
+         request.auth.uid == resource.data.proId);
+
+      // Consumer can create a booking (must set themselves as consumerId)
+      allow create: if request.auth != null &&
+        request.auth.uid == request.resource.data.consumerId;
+
+      // Consumer can cancel; pro can accept/reject/complete
+      allow update: if request.auth != null &&
+        (request.auth.uid == resource.data.consumerId ||
+         request.auth.uid == resource.data.proId);
+
+      allow delete: if false;
+    }
+
+    // ─── Availability slots ───────────────────────────────────────────────────
+    match /availability/{slotId} {
+      // Any authenticated user can read slots (needed for scheduling query)
+      allow read: if request.auth != null;
+
+      // Only the pro whose slot it is can write it
+      allow write: if request.auth != null &&
+        request.auth.uid == request.resource.data.proId;
+    }
+  }
+}

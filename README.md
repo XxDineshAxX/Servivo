@@ -1,110 +1,64 @@
 # Servivo
 
-> On-demand service booking — connect with the nearest available professional in under an hour.
+On-demand service booking — connect consumers with the nearest available pro in under 60 minutes.
 
-[![CI](https://github.com/your-org/servivo/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/servivo/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+## Stack
 
----
+| Layer | Technology |
+|---|---|
+| Monorepo | Turborepo + npm workspaces |
+| Web frontend | React 18 + Vite + TypeScript |
+| Mobile | Expo (React Native) + TypeScript |
+| Real-time backend | Firebase Firestore |
+| Auth | Firebase Authentication (consumer + pro flows) |
+| Maps | Mapbox GL JS (web) / `@rnmapbox/maps` (mobile) |
+| Push notifications | Firebase Cloud Messaging (FCM) |
+| Scheduling | Custom Haversine + availability engine (`@servivo/scheduling`) |
 
-## What is Servivo?
-
-Servivo is a mobile-first marketplace that lets consumers instantly book a nearby professional (plumber, electrician, cleaner, etc.) who can arrive within the next hour. Pros receive real-time booking requests and can accept or reject them directly from the app, with live location tracking visible to the consumer throughout.
-
----
-
-## Monorepo Structure
+## Project Structure
 
 ```
 servivo/
 ├── apps/
-│   ├── mobile/          # React Native (iOS + Android) — consumer & pro app
-│   └── web-admin/       # Vite + React — internal admin dashboard
-├── backend/             # Node.js + Express + Prisma — REST API & WebSocket server
+│   ├── web/          # React + Vite consumer & pro web app
+│   └── mobile/       # Expo consumer & pro mobile app
 ├── packages/
-│   ├── shared-types/    # TypeScript types shared across all apps
-│   ├── api-client/      # Typed HTTP client for the backend API
-│   └── utils/           # Shared utility functions (geo, time, formatters)
-├── infra/               # Terraform (AWS) + Kubernetes manifests
-└── docs/                # Architecture, API reference, guides
+│   ├── types/        # Shared TypeScript types
+│   ├── firebase/     # Firebase config & Firestore helpers
+│   ├── scheduling/   # Haversine distance + availability queries
+│   └── ui/           # Shared UI primitives
+└── infra/
+    └── firebase/     # Firestore rules, indexes, Cloud Functions (FCM)
 ```
-
----
-
-## Tech Stack
-
-| Layer        | Technology                                      |
-|--------------|-------------------------------------------------|
-| Mobile       | React Native, Expo, Redux Toolkit, React Query  |
-| Maps         | React Native Maps (Google Maps / Apple Maps)    |
-| Backend      | Node.js, Express, TypeScript, Prisma ORM        |
-| Database     | PostgreSQL (with PostGIS for geo queries)        |
-| Cache / PubSub | Redis                                         |
-| Real-time    | Socket.IO (WebSockets)                          |
-| Auth         | JWT + Refresh Tokens                            |
-| Notifications| Firebase Cloud Messaging (FCM)                  |
-| Payments     | Stripe                                          |
-| Infra        | AWS (ECS Fargate, RDS, ElastiCache), Terraform  |
-| CI/CD        | GitHub Actions                                  |
-
----
 
 ## Getting Started
 
-See [docs/guides/getting-started.md](./docs/guides/getting-started.md) for full setup instructions.
+1. **Clone & install**
+   ```bash
+   npm install
+   ```
 
-### Prerequisites
+2. **Configure environment**
+   ```bash
+   cp .env.example .env
+   # Fill in Firebase and Mapbox keys
+   ```
 
-- Node.js ≥ 20
-- pnpm ≥ 9
-- Docker & Docker Compose
-- Expo CLI (`npm install -g expo-cli`)
+3. **Run web dev server**
+   ```bash
+   npm run web
+   ```
 
-### Quick Start
-
-```bash
-# Clone the repo
-git clone https://github.com/your-org/servivo.git
-cd servivo
-
-# Install all dependencies
-pnpm install
-
-# Copy and fill in environment variables
-cp .env.example .env
-cp backend/.env.example backend/.env
-cp apps/mobile/.env.example apps/mobile/.env
-
-# Start backend services (Postgres, Redis) via Docker
-docker compose up -d
-
-# Run database migrations and seed
-pnpm --filter backend db:migrate
-pnpm --filter backend db:seed
-
-# Start all apps in dev mode
-pnpm dev
-```
-
----
+4. **Run mobile (Expo)**
+   ```bash
+   npm run mobile
+   ```
 
 ## Key Features
 
-- **Instant matching** — geo-proximity algorithm finds the nearest available pro within 1 hour
-- **Live map tracking** — consumer sees pro's real-time location after booking is accepted
-- **Accept / Reject flow** — pro receives push notification and can act within 60 seconds
-- **Dual-role app** — single app supports both consumer and pro personas
-- **Rating & reviews** — post-booking review system for both parties
-- **Stripe payments** — secure card-on-file charging after service completion
-
----
-
-## Contributing
-
-Please read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a PR.
-
----
-
-## License
-
-[MIT](./LICENSE)
+- **Live map** — Mapbox shows nearby pro locations with real-time position updates
+- **60-minute availability window** — queries Firestore for pros whose next slot opens within the hour, sorted by Haversine distance
+- **Consumer flow** — find nearest available pro → send booking request → track status on map
+- **Pro flow** — receive FCM push notification → accept or reject → navigate to consumer
+- **Separate auth** — consumers and pros have distinct login/signup flows backed by Firebase Auth + Firestore role documents
+- **Real-time sync** — Firestore listeners keep booking state in sync across both devices instantly

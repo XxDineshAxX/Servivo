@@ -1,0 +1,87 @@
+import {
+  getFirestore,
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  onSnapshot,
+  query,
+  where,
+  orderBy,
+  serverTimestamp,
+  type Unsubscribe,
+} from 'firebase/firestore';
+import type { Booking, BookingRequest, BookingStatus } from '@servivo/types';
+import { firebaseApp } from './config';
+
+const db = getFirestore(firebaseApp);
+const bookingsRef = collection(db, 'bookings');
+
+// ─── Create ───────────────────────────────────────────────────────────────────
+
+export async function createBooking(req: BookingRequest): Promise<string> {
+  const docRef = await addDoc(bookingsRef, {
+    ...req,
+    status: 'pending' as BookingStatus,
+    createdAt: Date.now(),
+  });
+  return docRef.id;
+}
+
+// ─── Update status ────────────────────────────────────────────────────────────
+
+export async function updateBookingStatus(
+  bookingId: string,
+  status: BookingStatus,
+  extra?: Partial<Booking>,
+): Promise<void> {
+  await updateDoc(doc(bookingsRef, bookingId), {
+    status,
+    ...extra,
+    ...(status === 'accepted' ? { acceptedAt: Date.now() } : {}),
+    ...(status === 'completed' ? { completedAt: Date.now() } : {}),
+  });
+}
+
+// ─── Real-time listeners ──────────────────────────────────────────────────────
+
+/** Listen to a single booking by ID. */
+export function subscribeToBooking(
+  bookingId: string,
+  callback: (booking: Booking | null) => void,
+): Unsubscribe {
+  return onSnapshot(doc(bookingsRef, bookingId), (snap) => {
+    callback(snap.exists() ? ({ id: snap.id, ...snap.data() } as Booking) : null);
+  });
+}
+
+/** Listen to all bookings for a consumer (ordered by creation, descending). */
+export function subscribeConsumerBookings(
+  consumerId: string,
+  callback: (bookings: Booking[]) => void,
+): Unsubscribe {
+  const q = query(
+    bookingsRef,
+    where('consumerId', '==', consumerId),
+    orderBy('createdAt', 'desc'),
+  );
+  return onSnapshot(q, (snap) =>
+    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Booking))),
+  );
+}
+
+/** Listen to all pending bookings directed at a pro. */
+export function subscribeProBookings(
+  proId: string,
+  callback: (bookings: Booking[]) => void,
+): Unsubscribe {
+  const q = query(
+    bookingsRef,
+    where('proId', '==', proId),
+    where('status', 'in', ['pending', 'accepted', 'in_progress']),
+    orderBy('createdAt', 'desc'),
+  );
+  return onSnapshot(q, (snap) =>
+    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Booking))),
+  );
+}
