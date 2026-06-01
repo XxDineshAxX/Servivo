@@ -8,7 +8,6 @@ import {
   query,
   where,
   orderBy,
-  serverTimestamp,
   type Unsubscribe,
 } from 'firebase/firestore';
 import type { Booking, BookingRequest, BookingStatus } from '@servivo/types';
@@ -50,12 +49,14 @@ export function subscribeToBooking(
   bookingId: string,
   callback: (booking: Booking | null) => void,
 ): Unsubscribe {
-  return onSnapshot(doc(bookingsRef, bookingId), (snap) => {
-    callback(snap.exists() ? ({ id: snap.id, ...snap.data() } as Booking) : null);
-  });
+  return onSnapshot(
+    doc(bookingsRef, bookingId),
+    (snap) => callback(snap.exists() ? ({ id: snap.id, ...snap.data() } as Booking) : null),
+    (err) => { console.error('subscribeToBooking error:', err); callback(null); },
+  );
 }
 
-/** Listen to all bookings for a consumer (ordered by creation, descending). */
+/** Listen to all bookings for a consumer, ordered by creation descending. */
 export function subscribeConsumerBookings(
   consumerId: string,
   callback: (bookings: Booking[]) => void,
@@ -65,23 +66,38 @@ export function subscribeConsumerBookings(
     where('consumerId', '==', consumerId),
     orderBy('createdAt', 'desc'),
   );
-  return onSnapshot(q, (snap) =>
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Booking))),
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Booking))),
+    (err) => { console.error('subscribeConsumerBookings error:', err); callback([]); },
   );
 }
 
-/** Listen to all pending bookings directed at a pro. */
+/** Listen to all active bookings directed at a pro.
+ *
+ * NOTE: This query requires a composite Firestore index on
+ * (proId ASC, status ASC, createdAt DESC). If the index hasn't been
+ * deployed yet, we fall back to a simpler query filtered client-side.
+ */
 export function subscribeProBookings(
   proId: string,
   callback: (bookings: Booking[]) => void,
 ): Unsubscribe {
-  const q = query(
-    bookingsRef,
-    where('proId', '==', proId),
-    where('status', 'in', ['pending', 'accepted', 'in_progress']),
-    orderBy('createdAt', 'desc'),
-  );
-  return onSnapshot(q, (snap) =>
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Booking))),
+  const activeStatuses = ['pending', 'accepted', 'in_progress'];
+
+  // Simple query — only filters by proId so no composite index needed.
+  // Results are filtered and sorted client-side until the index is deployed.
+  const q = query(bookingsRef, where('proId', '==', proId));
+
+  return onSnapshot(
+    q,
+    (snap) => {
+      const all = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Booking));
+      const filtered = all
+        .filter((b) => activeStatuses.includes(b.status))
+        .sort((a, b) => b.createdAt - a.createdAt);
+      callback(filtered);
+    },
+    (err) => { console.error('subscribeProBookings error:', err); callback([]); },
   );
 }

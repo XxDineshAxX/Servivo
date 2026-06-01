@@ -5,6 +5,21 @@ import { Button } from '@servivo/ui';
 
 type Mode = 'login' | 'signup';
 
+function friendlyError(err: unknown): string {
+  console.error('[Auth error]', err);
+  const code = (err as any)?.code ?? '';
+  const message = (err as any)?.message ?? '';
+  if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+    return 'Incorrect email or password. Please try again.';
+  }
+  if (code === 'auth/email-already-in-use') return 'An account with this email already exists.';
+  if (code === 'auth/weak-password') return 'Password must be at least 6 characters.';
+  if (code === 'auth/invalid-email') return 'Please enter a valid email address.';
+  if (code === 'auth/too-many-requests') return 'Too many attempts. Please wait a moment and try again.';
+  if (message.includes('No profile found')) return 'Account found but profile is incomplete. Please sign up again.';
+  return `Something went wrong (${code || message || 'unknown'}). Please try again.`;
+}
+
 const SERVICE_OPTIONS = [
   'Plumber', 'Electrician', 'HVAC', 'Handyman', 'Cleaner',
   'Painter', 'Locksmith', 'Appliance Repair', 'Other',
@@ -39,7 +54,7 @@ export default function ProLogin() {
       }
       navigate('/pro');
     } catch (err) {
-      setError((err as Error).message);
+      setError(friendlyError(err));
     } finally {
       setLoading(false);
     }

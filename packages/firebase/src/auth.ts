@@ -68,7 +68,23 @@ export async function signIn(
   password: string,
 ): Promise<ConsumerProfile | ProProfile> {
   const { user } = await signInWithEmailAndPassword(auth, email, password);
-  return getUserProfile(user.uid);
+
+  // If the Firestore profile was never created (e.g. rules blocked the write
+  // during signup), create a default consumer profile now so login still works.
+  const snap = await getDoc(doc(db, 'users', user.uid));
+  if (!snap.exists()) {
+    const profile: ConsumerProfile = {
+      uid: user.uid,
+      email: user.email ?? email,
+      displayName: user.displayName ?? email.split('@')[0],
+      role: 'consumer',
+      createdAt: Date.now(),
+    };
+    await setDoc(doc(db, 'users', user.uid), profile);
+    return profile;
+  }
+
+  return snap.data() as ConsumerProfile | ProProfile;
 }
 
 export async function signOut(): Promise<void> {
