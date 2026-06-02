@@ -5,12 +5,16 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
  * Works for both Vite (VITE_) and Expo (EXPO_PUBLIC_) prefixes.
  */
 function getEnv(key: string): string {
-  // Vite
+  // Vite (web)
   if (typeof import.meta !== 'undefined' && (import.meta as any).env) {
     return (import.meta as any).env[`VITE_${key}`] ?? '';
   }
-  // Expo / Node
-  return process.env[`EXPO_PUBLIC_${key}`] ?? process.env[key] ?? '';
+  // Expo / React Native (process.env accessed via string index to avoid TS errors in web builds)
+  const proc = (typeof globalThis !== 'undefined' && (globalThis as any).process) as any;
+  if (proc?.env) {
+    return proc.env[`EXPO_PUBLIC_${key}`] ?? proc.env[key] ?? '';
+  }
+  return '';
 }
 
 const firebaseConfig = {

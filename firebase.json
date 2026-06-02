@@ -1,14 +1,14 @@
 {
   "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
+    "rules": "infra/firebase/firestore.rules",
+    "indexes": "infra/firebase/firestore.indexes.json"
   },
   "functions": {
-    "source": "functions",
+    "source": "infra/firebase/functions",
     "runtime": "nodejs20"
   },
   "hosting": {
-    "public": "../../apps/web/dist",
+    "public": "apps/web/dist",
     "ignore": [
       "firebase.json",
       "**/.*",
