@@ -40,8 +40,10 @@ export function findAvailableProsNearby(
   for (const pro of pros) {
     if (!pro.isOnline) continue;
 
-    const nextAvailableAt = proNextSlot.get(pro.uid);
-    if (nextAvailableAt === undefined) continue;
+    // If the pro has a scheduled slot use it; otherwise treat being online
+    // as "available right now" so new pros show up without needing to
+    // pre-create slots first.
+    const nextAvailableAt = proNextSlot.get(pro.uid) ?? now;
 
     const distanceKm = haversineDistance(consumerLocation, pro.location);
 
