@@ -6,6 +6,10 @@ export interface Conversation {
   proName: string;
   lastMessage?: string;
   lastAt?: number;
+  /** uid of the person who sent the last message */
+  lastSenderId?: string;
+  /** uids of participants who have read the latest message */
+  readBy?: string[];
   participantIds: string[];
 }
 

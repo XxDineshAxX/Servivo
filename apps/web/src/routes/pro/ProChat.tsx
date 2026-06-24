@@ -6,6 +6,8 @@ import {
   sendMessage,
   subscribeMessages,
   getUserProfile,
+  makeConversationId,
+  markConversationRead,
 } from '@servivo/firebase';
 import { useAuthStore } from '../../store/authStore';
 import { ThemeToggle } from '../../components/ThemeToggle';
@@ -49,11 +51,16 @@ export default function ProChat() {
     })();
   }, [pro?.uid, consumerId]);
 
-  // Subscribe to messages as soon as conversationId is known
+  // Subscribe to messages as soon as conversationId is known;
+  // also mark as read whenever we open or receive new messages.
   useEffect(() => {
-    if (!conversationId) return;
-    return subscribeMessages(conversationId, setMessages);
-  }, [conversationId]);
+    if (!conversationId || !pro?.uid) return;
+    markConversationRead(conversationId, pro.uid);
+    return subscribeMessages(conversationId, (msgs: Message[]) => {
+      setMessages(msgs);
+      markConversationRead(conversationId, pro.uid!);
+    });
+  }, [conversationId, pro?.uid]);
 
   // Auto-scroll
   useEffect(() => {
@@ -62,10 +69,10 @@ export default function ProChat() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!conversationId || !pro || !text.trim()) return;
+    if (!conversationId || !pro || !consumerId || !text.trim()) return;
     setSending(true);
     try {
-      await sendMessage(conversationId, pro.uid, text);
+      await sendMessage(conversationId, pro.uid, text, [consumerId, pro.uid]);
       setText('');
     } finally {
       setSending(false);

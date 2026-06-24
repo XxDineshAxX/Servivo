@@ -7,6 +7,7 @@ import { useAllProBookings } from '../../hooks/useBooking';
 import { StatusBadge, Button } from '@servivo/ui';
 import { updateBookingStatus } from '@servivo/firebase';
 import { HamburgerButton, SideMenu } from '../../components/SideMenu';
+import { useUnreadCount } from '../../hooks/useUnreadCount';
 
 const ACTIVE_STATUSES = ['pending', 'accepted', 'in_progress'];
 
@@ -87,6 +88,7 @@ export default function ProBookings() {
   const { profile } = useAuthStore();
   const pro = profile as ProProfile | null;
   const { bookings, loading } = useAllProBookings(pro?.uid ?? null);
+  const unreadMessages = useUnreadCount(pro?.uid ?? null);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const active = bookings.filter((b) => ACTIVE_STATUSES.includes(b.status));
@@ -95,7 +97,7 @@ export default function ProBookings() {
   const proMenuItems = [
     { icon: '🏠', label: 'Dashboard', path: '/pro' },
     { icon: '📋', label: 'Bookings',  path: '/pro/bookings' },
-    { icon: '💬', label: 'Messages',  path: '/pro/messages' },
+    { icon: '💬', label: 'Messages',  path: '/pro/messages', badge: unreadMessages },
     { icon: '📅', label: 'Schedule',  path: '/pro/schedule' },
   ];
 
@@ -112,7 +114,7 @@ export default function ProBookings() {
           </button>
           <h1 className="font-bold text-gray-900 dark:text-white">Bookings</h1>
         </div>
-        <HamburgerButton onClick={() => setMenuOpen(true)} />
+        <HamburgerButton onClick={() => setMenuOpen(true)} badge={unreadMessages} />
       </header>
 
       <SideMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} items={proMenuItems} />

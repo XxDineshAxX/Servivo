@@ -8,6 +8,7 @@ import {
   subscribeMessages,
   getUserProfile,
   makeConversationId,
+  markConversationRead,
 } from '@servivo/firebase';
 import { useAuthStore } from '../../store/authStore';
 import { ThemeToggle } from '../../components/ThemeToggle';
@@ -54,11 +55,17 @@ export default function Chat() {
     })();
   }, [consumer?.uid, proId]);
 
-  // Subscribe to messages as soon as we have a conversationId
+  // Subscribe to messages as soon as we have a conversationId;
+  // also mark as read whenever we open this chat.
   useEffect(() => {
-    if (!conversationId) return;
-    return subscribeMessages(conversationId, setMessages);
-  }, [conversationId]);
+    if (!conversationId || !consumer?.uid) return;
+    markConversationRead(conversationId, consumer.uid);
+    return subscribeMessages(conversationId, (msgs: Message[]) => {
+      setMessages(msgs);
+      // Mark as read whenever new messages arrive while we're looking at the chat
+      markConversationRead(conversationId, consumer.uid!);
+    });
+  }, [conversationId, consumer?.uid]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -67,10 +74,10 @@ export default function Chat() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!conversationId || !consumer || !text.trim()) return;
+    if (!conversationId || !consumer || !proId || !text.trim()) return;
     setSending(true);
     try {
-      await sendMessage(conversationId, consumer.uid, text);
+      await sendMessage(conversationId, consumer.uid, text, [consumer.uid, proId]);
       setText('');
     } finally {
       setSending(false);

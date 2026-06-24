@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useConsumerBookings } from '../../hooks/useBooking';
 import { StatusBadge } from '@servivo/ui';
 import { HamburgerButton, SideMenu } from '../../components/SideMenu';
+import { useUnreadCount } from '../../hooks/useUnreadCount';
 
 const ACTIVE_STATUSES = ['pending', 'accepted', 'in_progress'];
 
@@ -49,6 +50,7 @@ export default function ConsumerBookings() {
   const { profile } = useAuthStore();
   const consumer = profile as ConsumerProfile | null;
   const { bookings, loading } = useConsumerBookings(consumer?.uid ?? null);
+  const unreadMessages = useUnreadCount(consumer?.uid ?? null);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const active = bookings.filter((b) => ACTIVE_STATUSES.includes(b.status));
@@ -57,7 +59,7 @@ export default function ConsumerBookings() {
   const consumerMenuItems = [
     { icon: '🏠', label: 'Home',     path: '/consumer' },
     { icon: '📋', label: 'Bookings', path: '/consumer/bookings' },
-    { icon: '💬', label: 'Messages', path: '/consumer/chats' },
+    { icon: '💬', label: 'Messages', path: '/consumer/chats', badge: unreadMessages },
   ];
 
   return (
@@ -73,7 +75,7 @@ export default function ConsumerBookings() {
           </button>
           <h1 className="font-bold text-gray-900 dark:text-white">My Bookings</h1>
         </div>
-        <HamburgerButton onClick={() => setMenuOpen(true)} />
+        <HamburgerButton onClick={() => setMenuOpen(true)} badge={unreadMessages} />
       </header>
 
       <SideMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} items={consumerMenuItems} />

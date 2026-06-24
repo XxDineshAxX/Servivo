@@ -8,6 +8,7 @@ import { useGeolocation } from '../../hooks/useGeolocation';
 import { BookingCard } from '../../components/BookingCard';
 import { Button } from '@servivo/ui';
 import { SideMenu, HamburgerButton } from '../../components/SideMenu';
+import { useUnreadCount } from '../../hooks/useUnreadCount';
 
 export default function ProDashboard() {
   const navigate = useNavigate();
@@ -48,12 +49,13 @@ export default function ProDashboard() {
   };
 
   const pendingCount = bookings.filter((b) => b.status === 'pending').length;
+  const unreadMessages = useUnreadCount(pro?.uid ?? null);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const proMenuItems = [
     { icon: '🏠', label: 'Dashboard', path: '/pro' },
     { icon: '📋', label: 'Bookings',  path: '/pro/bookings', badge: pendingCount },
-    { icon: '💬', label: 'Messages',  path: '/pro/messages' },
+    { icon: '💬', label: 'Messages',  path: '/pro/messages', badge: unreadMessages },
     { icon: '📅', label: 'Schedule',  path: '/pro/schedule' },
   ];
 
@@ -98,7 +100,7 @@ export default function ProDashboard() {
           <h1 className="font-bold text-gray-900 dark:text-white">Pro Dashboard</h1>
           <p className="text-xs text-gray-500 dark:text-gray-400">{pro?.displayName}</p>
         </div>
-        <HamburgerButton onClick={() => setMenuOpen(true)} />
+        <HamburgerButton onClick={() => setMenuOpen(true)} badge={unreadMessages} />
       </header>
 
       <SideMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} items={proMenuItems} />

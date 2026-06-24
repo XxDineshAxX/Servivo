@@ -9,6 +9,7 @@ import { getSavedProProfiles, unsavePro } from '@servivo/firebase';
 import { MapView } from '../../components/MapView';
 import { ProCard } from '../../components/ProCard';
 import { SideMenu, HamburgerButton } from '../../components/SideMenu';
+import { useUnreadCount } from '../../hooks/useUnreadCount';
 
 type Tab = 'nearby' | 'saved';
 
@@ -25,10 +26,12 @@ export default function ConsumerHome() {
   const [tab, setTab] = useState<Tab>('nearby');
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const unreadMessages = useUnreadCount(consumer?.uid ?? null);
+
   const consumerMenuItems = [
     { icon: '🏠', label: 'Home',     path: '/consumer' },
     { icon: '📋', label: 'Bookings', path: '/consumer/bookings' },
-    { icon: '💬', label: 'Messages', path: '/consumer/chats' },
+    { icon: '💬', label: 'Messages', path: '/consumer/chats', badge: unreadMessages },
   ];
   const [savedPros, setSavedPros] = useState<ProProfile[]>([]);
   const [savedLoading, setSavedLoading] = useState(false);
@@ -136,7 +139,7 @@ export default function ConsumerHome() {
           <h1 className="font-bold text-gray-900 dark:text-white">Servivo</h1>
           <p className="text-xs text-gray-500 dark:text-gray-400">Hi, {profile?.displayName}</p>
         </div>
-        <HamburgerButton onClick={() => setMenuOpen(true)} />
+        <HamburgerButton onClick={() => setMenuOpen(true)} badge={unreadMessages} />
       </header>
 
       <SideMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} items={consumerMenuItems} />

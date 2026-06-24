@@ -141,17 +141,23 @@ export function SideMenu({ isOpen, onClose, items }: SideMenuProps) {
   );
 }
 
-/** Hamburger button — drop this anywhere in a header */
-export function HamburgerButton({ onClick }: { onClick: () => void }) {
+/** Hamburger button — drop this anywhere in a header.
+ *  Pass `badge` to show a red notification dot with a count. */
+export function HamburgerButton({ onClick, badge }: { onClick: () => void; badge?: number }) {
   return (
     <button
       onClick={onClick}
-      className="w-9 h-9 flex flex-col items-center justify-center gap-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+      className="relative w-9 h-9 flex flex-col items-center justify-center gap-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
       aria-label="Open menu"
     >
       <span className="w-5 h-0.5 bg-gray-600 dark:bg-gray-300 rounded-full" />
       <span className="w-5 h-0.5 bg-gray-600 dark:bg-gray-300 rounded-full" />
       <span className="w-5 h-0.5 bg-gray-600 dark:bg-gray-300 rounded-full" />
+      {badge !== undefined && badge > 0 && (
+        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
     </button>
   );
 }

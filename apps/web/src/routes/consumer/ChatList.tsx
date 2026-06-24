@@ -11,19 +11,49 @@ export default function ChatList() {
   const { profile } = useAuthStore();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!profile) return;
-    const unsub = subscribeConversations(profile.uid, (convos) => {
-      setConversations(convos);
-      setLoading(false);
-    });
+    setError(null);
+    const unsub = subscribeConversations(
+      profile.uid,
+      (convos) => {
+        setConversations(convos);
+        setLoading(false);
+        setError(null);
+      },
+      (err: Error) => {
+        console.error('ChatList subscription error:', err);
+        setLoading(false);
+        setError(err.message?.includes('permission') || err.message?.includes('PERMISSION')
+          ? 'Permission denied — make sure the Firestore rules in Firebase Console are up to date.'
+          : 'Failed to load messages. Check your connection and try again.');
+      },
+    );
     return unsub;
   }, [profile?.uid]);
 
   const consumer = profile as ConsumerProfile | null;
   const otherName = (c: Conversation) =>
     consumer?.uid === c.consumerId ? c.proName : c.consumerName;
+
+  const isUnread = (c: Conversation) =>
+    !!c.lastSenderId &&
+    c.lastSenderId !== profile?.uid &&
+    !(c.readBy ?? []).includes(profile?.uid ?? '');
+
+  const formatTime = (ts: number) => {
+    const d = new Date(ts);
+    const now = new Date();
+    const isToday =
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate();
+    return isToday
+      ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
@@ -42,6 +72,11 @@ export default function ChatList() {
       </header>
 
       <div className="flex-1 max-w-lg mx-auto w-full p-4">
+        {error && (
+          <div className="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm text-red-700 dark:text-red-400">
+            ⚠️ {error}
+          </div>
+        )}
         {loading ? (
           <p className="text-center text-gray-400 py-12 text-sm">Loading…</p>
         ) : conversations.length === 0 ? (
@@ -52,36 +87,55 @@ export default function ChatList() {
           </div>
         ) : (
           <ul className="space-y-2">
-            {conversations.map((c) => (
-              <li key={c.id}>
-                <button
-                  onClick={() => navigate(`/consumer/chat/${c.proId}`)}
-                  className="w-full bg-white dark:bg-gray-800 rounded-2xl p-4 text-left flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow"
-                >
-                  {/* Avatar */}
-                  <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center flex-shrink-0">
-                    <span className="text-indigo-700 dark:text-indigo-300 font-bold text-lg">
-                      {otherName(c).charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 dark:text-white truncate">
-                      {otherName(c)}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                      {c.lastMessage || 'No messages yet'}
-                    </p>
-                  </div>
-                  {/* Time */}
-                  {c.lastAt && (
-                    <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
-                      {new Date(c.lastAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  )}
-                </button>
-              </li>
-            ))}
+            {conversations.map((c) => {
+              const unread = isUnread(c);
+              return (
+                <li key={c.id}>
+                  <button
+                    onClick={() => navigate(`/consumer/chat/${c.proId}`)}
+                    className={`w-full rounded-2xl p-4 text-left flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow ${
+                      unread
+                        ? 'bg-indigo-50 dark:bg-indigo-900/30'
+                        : 'bg-white dark:bg-gray-800'
+                    }`}
+                  >
+                    {/* Avatar with unread dot */}
+                    <div className="relative flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
+                        <span className="text-indigo-700 dark:text-indigo-300 font-bold text-lg">
+                          {otherName(c).charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      {unread && (
+                        <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-900" />
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className={`truncate ${unread ? 'font-bold text-gray-900 dark:text-white' : 'font-semibold text-gray-900 dark:text-white'}`}>
+                        {otherName(c)}
+                      </p>
+                      <p className={`text-sm truncate mt-0.5 ${unread ? 'text-gray-800 dark:text-gray-200 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                        {c.lastMessage || 'No messages yet'}
+                      </p>
+                    </div>
+
+                    {/* Time + unread badge */}
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      {c.lastAt ? (
+                        <span className={`text-xs ${unread ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-gray-400 dark:text-gray-500'}`}>
+                          {formatTime(c.lastAt)}
+                        </span>
+                      ) : null}
+                      {unread && (
+                        <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
+                      )}
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

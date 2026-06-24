@@ -13,23 +13,55 @@ export default function ProMessages() {
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!pro) return;
-    const unsub = subscribeConversations(pro.uid, (convos) => {
-      setConversations(convos);
-      setLoading(false);
-    });
+    setError(null);
+    const unsub = subscribeConversations(
+      pro.uid,
+      (convos) => {
+        setConversations(convos);
+        setLoading(false);
+        setError(null);
+      },
+      (err: Error) => {
+        console.error('ProMessages subscription error:', err);
+        setLoading(false);
+        setError(err.message?.includes('permission') || err.message?.includes('PERMISSION')
+          ? 'Permission denied — make sure the Firestore rules in Firebase Console are up to date.'
+          : 'Failed to load messages. Check your connection and try again.');
+      },
+    );
     return unsub;
   }, [pro?.uid]);
+
+  const isUnread = (c: Conversation) =>
+    !!c.lastSenderId &&
+    c.lastSenderId !== pro?.uid &&
+    !(c.readBy ?? []).includes(pro?.uid ?? '');
+
+  const unreadTotal = conversations.filter(isUnread).length;
 
   const proMenuItems = [
     { icon: '🏠', label: 'Dashboard', path: '/pro' },
     { icon: '📋', label: 'Bookings',  path: '/pro/bookings' },
-    { icon: '💬', label: 'Messages',  path: '/pro/messages' },
+    { icon: '💬', label: 'Messages',  path: '/pro/messages', badge: unreadTotal },
     { icon: '📅', label: 'Schedule',  path: '/pro/schedule' },
   ];
+
+  const formatTime = (ts: number) => {
+    const d = new Date(ts);
+    const now = new Date();
+    const isToday =
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate();
+    return isToday
+      ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
@@ -42,14 +74,26 @@ export default function ProMessages() {
           >
             ← Back
           </button>
-          <h1 className="font-bold text-gray-900 dark:text-white">Messages</h1>
+          <h1 className="font-bold text-gray-900 dark:text-white">
+            Messages
+            {unreadTotal > 0 && (
+              <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5">
+                {unreadTotal}
+              </span>
+            )}
+          </h1>
         </div>
-        <HamburgerButton onClick={() => setMenuOpen(true)} />
+        <HamburgerButton onClick={() => setMenuOpen(true)} badge={unreadTotal} />
       </header>
 
       <SideMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} items={proMenuItems} />
 
       <div className="flex-1 max-w-lg mx-auto w-full p-4">
+        {error && (
+          <div className="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm text-red-700 dark:text-red-400">
+            ⚠️ {error}
+          </div>
+        )}
         {loading ? (
           <p className="text-center text-gray-400 py-12 text-sm">Loading…</p>
         ) : conversations.length === 0 ? (
@@ -60,36 +104,55 @@ export default function ProMessages() {
           </div>
         ) : (
           <ul className="space-y-2">
-            {conversations.map((c) => (
-              <li key={c.id}>
-                <button
-                  onClick={() => navigate(`/pro/chat/${c.consumerId}`)}
-                  className="w-full bg-white dark:bg-gray-800 rounded-2xl p-4 text-left flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow"
-                >
-                  {/* Avatar */}
-                  <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center flex-shrink-0">
-                    <span className="text-indigo-700 dark:text-indigo-300 font-bold text-lg">
-                      {c.consumerName.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 dark:text-white truncate">
-                      {c.consumerName}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                      {c.lastMessage || 'No messages yet'}
-                    </p>
-                  </div>
-                  {/* Time */}
-                  {c.lastAt && (
-                    <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
-                      {new Date(c.lastAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  )}
-                </button>
-              </li>
-            ))}
+            {conversations.map((c) => {
+              const unread = isUnread(c);
+              return (
+                <li key={c.id}>
+                  <button
+                    onClick={() => navigate(`/pro/chat/${c.consumerId}`)}
+                    className={`w-full rounded-2xl p-4 text-left flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow ${
+                      unread
+                        ? 'bg-indigo-50 dark:bg-indigo-900/30'
+                        : 'bg-white dark:bg-gray-800'
+                    }`}
+                  >
+                    {/* Avatar with unread dot */}
+                    <div className="relative flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
+                        <span className="text-indigo-700 dark:text-indigo-300 font-bold text-lg">
+                          {c.consumerName.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      {unread && (
+                        <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-900" />
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className={`truncate ${unread ? 'font-bold text-gray-900 dark:text-white' : 'font-semibold text-gray-900 dark:text-white'}`}>
+                        {c.consumerName}
+                      </p>
+                      <p className={`text-sm truncate mt-0.5 ${unread ? 'text-gray-800 dark:text-gray-200 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                        {c.lastMessage || 'No messages yet'}
+                      </p>
+                    </div>
+
+                    {/* Time + unread dot */}
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      {c.lastAt ? (
+                        <span className={`text-xs ${unread ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-gray-400 dark:text-gray-500'}`}>
+                          {formatTime(c.lastAt)}
+                        </span>
+                      ) : null}
+                      {unread && (
+                        <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
+                      )}
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

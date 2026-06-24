@@ -4,13 +4,11 @@ import {
   doc,
   addDoc,
   setDoc,
-  getDoc,
-  updateDoc,
   onSnapshot,
   query,
   where,
-  orderBy,
   limit,
+  arrayUnion,
   type Unsubscribe,
 } from 'firebase/firestore';
 import type { Conversation, Message } from '@servivo/types';
@@ -24,7 +22,9 @@ function makeConversationId(consumerId: string, proId: string): string {
   return [consumerId, proId].sort().join('_');
 }
 
-/** Get or create a conversation between a consumer and a pro. Returns the conversationId. */
+/** Get or create a conversation between a consumer and a pro. Returns the conversationId.
+ *  Uses setDoc with merge so it's idempotent — safe to call every time the chat screen opens.
+ */
 export async function getOrCreateConversation(
   consumerId: string,
   proId: string,
@@ -33,27 +33,36 @@ export async function getOrCreateConversation(
 ): Promise<string> {
   const id = makeConversationId(consumerId, proId);
   const ref = doc(conversationsRef, id);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) {
-    const convo: Omit<Conversation, 'id'> = {
+  // setDoc + merge is atomic and idempotent — creates if missing, leaves existing fields alone
+  await setDoc(
+    ref,
+    {
+      id,
       consumerId,
       proId,
       consumerName,
       proName,
-      lastMessage: '',
-      lastAt: Date.now(),
       participantIds: [consumerId, proId],
-    };
-    await setDoc(ref, { id, ...convo });
-  }
+    },
+    { merge: true },
+  );
   return id;
 }
 
-/** Send a message to a conversation. */
+/**
+ * Send a message to a conversation.
+ *
+ * Always pass `participantIds` — it is written on every send so that if the
+ * conversation doc was never created (e.g. first message before the background
+ * getOrCreateConversation finished), this setDoc acts as the create and the
+ * Firestore `create` rule (`request.auth.uid in request.resource.data.participantIds`)
+ * will pass correctly.
+ */
 export async function sendMessage(
   conversationId: string,
   senderId: string,
   text: string,
+  participantIds: string[],
 ): Promise<void> {
   const trimmed = text.trim();
   const messagesRef = collection(db, 'conversations', conversationId, 'messages');
@@ -63,23 +72,51 @@ export async function sendMessage(
     text: trimmed,
     createdAt: Date.now(),
   };
-  // Add the message first
+  // Write the message doc first
   await addDoc(messagesRef, msg);
-  // Update conversation preview — use setDoc with merge so it works even if the
-  // conversation doc was not yet created (race condition on first message)
+  // Update conversation preview + unread tracking.
+  // participantIds is always included so this acts as a valid create if the doc
+  // doesn't exist yet (create rule requires participantIds in request.resource.data).
+  // readBy is reset to [senderId] — only the sender has "read" the latest message.
   await setDoc(
     doc(conversationsRef, conversationId),
-    { lastMessage: trimmed, lastAt: Date.now() },
+    {
+      participantIds,
+      lastMessage: trimmed,
+      lastAt: Date.now(),
+      lastSenderId: senderId,
+      readBy: [senderId],
+    },
     { merge: true },
   );
+}
+
+/**
+ * Mark all messages in a conversation as read for the given user.
+ * Call this whenever a user opens a chat screen.
+ */
+export async function markConversationRead(
+  conversationId: string,
+  userId: string,
+): Promise<void> {
+  try {
+    await setDoc(
+      doc(conversationsRef, conversationId),
+      { readBy: arrayUnion(userId) },
+      { merge: true },
+    );
+  } catch (e) {
+    console.error('markConversationRead error:', e);
+  }
 }
 
 /** Subscribe to all conversations a user participates in. */
 export function subscribeConversations(
   userId: string,
   callback: (conversations: Conversation[]) => void,
+  onError?: (err: Error) => void,
 ): Unsubscribe {
-  // array-contains filter, sorted client-side to avoid composite index
+  // array-contains filter — sorted client-side to avoid composite index requirement
   const q = query(conversationsRef, where('participantIds', 'array-contains', userId));
   return onSnapshot(
     q,
@@ -90,21 +127,31 @@ export function subscribeConversations(
     },
     (err) => {
       console.error('subscribeConversations error:', err);
-      callback([]);
+      if (onError) onError(err);
+      else callback([]);
     },
   );
 }
 
-/** Subscribe to messages in a specific conversation (oldest first, last 200). */
+/**
+ * Subscribe to messages in a specific conversation (oldest first, last 200).
+ * NOTE: No orderBy — avoids composite index requirement. Sorted client-side.
+ */
 export function subscribeMessages(
   conversationId: string,
   callback: (messages: Message[]) => void,
 ): Unsubscribe {
   const messagesRef = collection(db, 'conversations', conversationId, 'messages');
-  const q = query(messagesRef, orderBy('createdAt', 'asc'), limit(200));
+  // No orderBy to avoid requiring a Firestore composite index — sort client-side instead
+  const q = query(messagesRef, limit(200));
   return onSnapshot(
     q,
-    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Message))),
+    (snap) => {
+      const msgs = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() } as Message))
+        .sort((a, b) => a.createdAt - b.createdAt);
+      callback(msgs);
+    },
     (err) => {
       console.error('subscribeMessages error:', err);
       callback([]);
