@@ -44,11 +44,91 @@ export default function ConsumerHome() {
   }
 
   if (geoError || !location) {
+    const isPermissionDenied =
+      geoError?.toLowerCase().includes('denied') ||
+      geoError?.toLowerCase().includes('permission');
+
+    const browserSteps: Record<string, string[]> = {
+      Chrome: [
+        'Click the lock icon 🔒 in the address bar',
+        'Select "Site settings"',
+        'Set Location to "Allow"',
+        'Refresh this page',
+      ],
+      Firefox: [
+        'Click the shield icon in the address bar',
+        'Click "Connection secure" → "More information"',
+        'Go to the "Permissions" tab',
+        'Set Location to "Allow"',
+        'Refresh this page',
+      ],
+      Safari: [
+        'Open Safari → Settings (⌘,)',
+        'Go to "Websites" → "Location"',
+        'Find this site and set it to "Allow"',
+        'Refresh this page',
+      ],
+    };
+
+    // Detect browser roughly
+    const ua = navigator.userAgent;
+    const browserName = ua.includes('Firefox')
+      ? 'Firefox'
+      : ua.includes('Safari') && !ua.includes('Chrome')
+      ? 'Safari'
+      : 'Chrome';
+
+    const steps = browserSteps[browserName];
+
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 text-center">
-        <div>
-          <p className="text-red-500 font-medium mb-2">Location access required</p>
-          <p className="text-sm text-gray-500">{geoError}</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-3xl shadow-lg max-w-md w-full p-8 text-center">
+          {/* Icon */}
+          <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <span className="text-4xl">📍</span>
+          </div>
+
+          {/* Heading */}
+          <h2 className="text-2xl font-black text-gray-900 mb-2">
+            {isPermissionDenied ? 'Location access blocked' : 'Location unavailable'}
+          </h2>
+          <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+            {isPermissionDenied
+              ? 'Servivo needs your location to find available pros near you. Your browser is currently blocking location access for this site.'
+              : `We couldn't get your location${geoError ? ': ' + geoError : '. Please try again.'}`}
+          </p>
+
+          {/* Steps */}
+          {isPermissionDenied && (
+            <div className="bg-indigo-50 rounded-2xl p-5 text-left mb-6">
+              <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest mb-3">
+                How to enable in {browserName}
+              </p>
+              <ol className="space-y-2">
+                {steps.map((step, i) => (
+                  <li key={i} className="flex gap-3 text-sm text-gray-700">
+                    <span className="flex-shrink-0 w-5 h-5 bg-indigo-600 text-white rounded-full text-xs font-bold flex items-center justify-center mt-0.5">
+                      {i + 1}
+                    </span>
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          {/* Retry button */}
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors"
+          >
+            Try again
+          </button>
+
+          {/* Help text */}
+          <p className="text-xs text-gray-400 mt-4">
+            Your location is only used to find nearby pros and is never stored without your booking.
+          </p>
         </div>
       </div>
     );
