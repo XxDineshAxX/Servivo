@@ -1,16 +1,18 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@servivo/ui';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 export default function Landing() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
 
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
         <span className="text-2xl font-black text-indigo-600">Servivo</span>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
           <Button variant="ghost" size="sm" onClick={() => navigate('/pro/login')}>
             Pro login
           </Button>
@@ -20,7 +22,7 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* Hero */}
+      {/* Hero — gradient stays the same in both modes */}
       <section className="bg-gradient-to-br from-indigo-600 to-indigo-800 text-white py-24 px-6 text-center">
         <div className="max-w-3xl mx-auto">
           <div className="inline-block bg-indigo-500 bg-opacity-40 text-indigo-100 text-sm font-medium px-4 py-1.5 rounded-full mb-6">
@@ -52,38 +54,23 @@ export default function Landing() {
       </section>
 
       {/* How it works */}
-      <section className="py-20 px-6 bg-gray-50">
+      <section className="py-20 px-6 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">How it works</h2>
-          <p className="text-center text-gray-500 mb-14 max-w-xl mx-auto">
+          <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-4">How it works</h2>
+          <p className="text-center text-gray-500 dark:text-gray-400 mb-14 max-w-xl mx-auto">
             From request to doorstep in three simple steps.
           </p>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              {
-                step: '1',
-                icon: '📍',
-                title: 'Share your location',
-                desc: 'Open the app and we instantly find all available pros within range of you right now.',
-              },
-              {
-                step: '2',
-                icon: '⚡',
-                title: 'Pick & book',
-                desc: 'See pros sorted by distance and availability. Tap to send a booking request in one click.',
-              },
-              {
-                step: '3',
-                icon: '🔧',
-                title: 'They come to you',
-                desc: 'Your pro accepts and heads over. Track their location on the map until they arrive.',
-              },
+              { step: '1', icon: '📍', title: 'Share your location', desc: 'Open the app and we instantly find all available pros within range of you right now.' },
+              { step: '2', icon: '⚡', title: 'Pick & book', desc: 'See pros sorted by distance and availability. Tap to send a booking request in one click.' },
+              { step: '3', icon: '🔧', title: 'They come to you', desc: 'Your pro accepts and heads over. Track their location on the map until they arrive.' },
             ].map(({ step, icon, title, desc }) => (
-              <div key={step} className="bg-white rounded-2xl p-8 shadow-sm text-center">
+              <div key={step} className="bg-white dark:bg-gray-700 rounded-2xl p-8 shadow-sm text-center">
                 <div className="text-4xl mb-4">{icon}</div>
-                <div className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-2">Step {step}</div>
-                <h3 className="text-lg font-bold text-gray-900 mb-3">{title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{desc}</p>
+                <div className="text-xs font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest mb-2">Step {step}</div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">{title}</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
@@ -91,9 +78,11 @@ export default function Landing() {
       </section>
 
       {/* Features */}
-      <section className="py-20 px-6">
+      <section className="py-20 px-6 bg-white dark:bg-gray-900">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-14">Everything you need, nothing you don't</h2>
+          <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-14">
+            Everything you need, nothing you don't
+          </h2>
           <div className="grid md:grid-cols-2 gap-6">
             {[
               { icon: '🗺️', title: 'Live map', desc: 'See nearby pros as pins on a real map. Watch your pro move toward you after they accept.' },
@@ -103,11 +92,11 @@ export default function Landing() {
               { icon: '🔒', title: 'Separate logins', desc: 'Consumers and pros have dedicated accounts and dashboards built for their specific needs.' },
               { icon: '📅', title: 'Schedule management', desc: 'Pros set their own availability windows. Only available pros appear in consumer searches.' },
             ].map(({ icon, title, desc }) => (
-              <div key={title} className="flex gap-4 p-6 bg-gray-50 rounded-2xl">
+              <div key={title} className="flex gap-4 p-6 bg-gray-50 dark:bg-gray-800 rounded-2xl">
                 <span className="text-3xl flex-shrink-0">{icon}</span>
                 <div>
-                  <h3 className="font-bold text-gray-900 mb-1">{title}</h3>
-                  <p className="text-gray-500 text-sm leading-relaxed">{desc}</p>
+                  <h3 className="font-bold text-gray-900 dark:text-white mb-1">{title}</h3>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">{desc}</p>
                 </div>
               </div>
             ))}
@@ -116,13 +105,18 @@ export default function Landing() {
       </section>
 
       {/* Services */}
-      <section className="py-20 px-6 bg-indigo-50">
+      <section className="py-20 px-6 bg-indigo-50 dark:bg-indigo-950">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Services available</h2>
-          <p className="text-gray-500 mb-10">Skilled professionals across the most common home service categories.</p>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Services available</h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-10">
+            Skilled professionals across the most common home service categories.
+          </p>
           <div className="flex flex-wrap justify-center gap-3">
             {['Plumber', 'Electrician', 'HVAC', 'Handyman', 'Cleaner', 'Painter', 'Locksmith', 'Appliance Repair'].map((s) => (
-              <span key={s} className="bg-white text-indigo-700 border border-indigo-200 px-5 py-2 rounded-full text-sm font-medium shadow-sm">
+              <span
+                key={s}
+                className="bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 px-5 py-2 rounded-full text-sm font-medium shadow-sm"
+              >
                 {s}
               </span>
             ))}
@@ -130,7 +124,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* CTA — gradient stays the same */}
       <section className="py-24 px-6 bg-indigo-600 text-white text-center">
         <div className="max-w-xl mx-auto">
           <h2 className="text-4xl font-black mb-4">Ready to get started?</h2>
@@ -157,8 +151,8 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 px-6 text-center text-sm text-gray-400 border-t">
-        <span className="font-bold text-gray-600 mr-2">Servivo</span>
+      <footer className="py-8 px-6 text-center text-sm text-gray-400 dark:text-gray-500 border-t dark:border-gray-700 bg-white dark:bg-gray-900">
+        <span className="font-bold text-gray-600 dark:text-gray-400 mr-2">Servivo</span>
         On-demand home services · {new Date().getFullYear()}
       </footer>
 

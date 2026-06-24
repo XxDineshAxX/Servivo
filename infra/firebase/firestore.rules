@@ -35,12 +35,35 @@ service cloud.firestore {
 
     // ─── Availability slots ───────────────────────────────────────────────────
     match /availability/{slotId} {
-      // Any authenticated user can read slots (needed for scheduling query)
       allow read: if request.auth != null;
-
-      // Only the pro whose slot it is can write it
       allow write: if request.auth != null &&
         request.auth.uid == request.resource.data.proId;
+    }
+
+    // ─── Conversations ────────────────────────────────────────────────────────
+    match /conversations/{conversationId} {
+      // Only participants can read or create a conversation
+      allow read, create: if request.auth != null &&
+        request.auth.uid in resource.data.participantIds;
+
+      // Participants can update (e.g. lastMessage / lastAt)
+      allow update: if request.auth != null &&
+        request.auth.uid in resource.data.participantIds;
+
+      allow delete: if false;
+
+      // ─── Messages subcollection ───────────────────────────────────────────
+      match /messages/{messageId} {
+        // Participants in the parent conversation can read/write messages
+        allow read: if request.auth != null &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
+
+        allow create: if request.auth != null &&
+          request.auth.uid == request.resource.data.senderId &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
+
+        allow update, delete: if false;
+      }
     }
   }
 }

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signIn, signUpPro } from '@servivo/firebase';
 import { Button } from '@servivo/ui';
+import { ThemeToggle } from '../../components/ThemeToggle';
 
 type Mode = 'login' | 'signup';
 
@@ -28,12 +29,19 @@ const SERVICE_OPTIONS = [
 export default function ProLogin() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>('login');
-  const [email, setEmail] = useState('');
+
+  // Shared
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
+
+  // Sign-up extras
+  const [displayName, setDisplayName]   = useState('');
+  const [username, setUsername]         = useState('');
+  const [address, setAddress]           = useState('');
   const [serviceTypes, setServiceTypes] = useState<string[]>([]);
+
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]     = useState<string | null>(null);
 
   const toggleService = (s: string) =>
     setServiceTypes((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
@@ -50,7 +58,10 @@ export default function ProLogin() {
       if (mode === 'login') {
         await signIn(email, password);
       } else {
-        await signUpPro(email, password, displayName, serviceTypes);
+        await signUpPro(email, password, displayName, serviceTypes, {
+          username: username.trim() || undefined,
+          address:  address.trim()  || undefined,
+        });
       }
       navigate('/pro');
     } catch (err) {
@@ -60,30 +71,73 @@ export default function ProLogin() {
     }
   };
 
+  const inputCls =
+    'w-full border dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 w-full max-w-sm">
+        <div className="flex justify-end mb-2">
+          <ThemeToggle />
+        </div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
           {mode === 'login' ? 'Pro sign in' : 'Join as a pro'}
         </h1>
-        <p className="text-sm text-gray-500 mb-6">Professional portal</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Professional portal</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'signup' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Full name <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   required
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className={inputCls}
+                  placeholder="John Smith"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Services offered</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Username
+                  <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(optional)</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">@</span>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.replace(/[^a-z0-9_]/gi, '').toLowerCase())}
+                    className={`${inputCls} pl-7`}
+                    placeholder="johnsmith"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Service area / address
+                  <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className={inputCls}
+                  placeholder="Dallas, TX"
+                />
+                <p className="text-xs text-gray-400 mt-1">The general area you work in</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Services offered <span className="text-red-500">*</span>
+                </label>
                 <div className="flex flex-wrap gap-2">
                   {SERVICE_OPTIONS.map((s) => (
                     <button
@@ -93,7 +147,7 @@ export default function ProLogin() {
                       className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                         serviceTypes.includes(s)
                           ? 'bg-indigo-600 text-white border-indigo-600'
-                          : 'bg-white text-gray-600 border-gray-300'
+                          : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600'
                       }`}
                     >
                       {s}
@@ -105,39 +159,41 @@ export default function ProLogin() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className={inputCls}
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className={inputCls}
+              placeholder="••••••••"
             />
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
           <Button type="submit" variant="primary" size="md" className="w-full" loading={loading}>
             {mode === 'login' ? 'Sign in' : 'Create pro account'}
           </Button>
         </form>
 
-        <p className="text-center text-sm text-gray-500 mt-4">
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-4">
           {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
           <button
             type="button"
-            onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-            className="text-indigo-600 font-medium hover:underline"
+            onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); }}
+            className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline"
           >
             {mode === 'login' ? 'Sign up' : 'Sign in'}
           </button>

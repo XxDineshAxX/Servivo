@@ -3,11 +3,14 @@ import {
   collection,
   doc,
   updateDoc,
+  getDoc,
+  getDocs,
   onSnapshot,
   query,
   where,
+  arrayUnion,
+  arrayRemove,
   type Unsubscribe,
-  getDocs,
 } from 'firebase/firestore';
 import type { ProProfile, GeoPoint, AvailabilitySlot } from '@servivo/types';
 import { firebaseApp } from './config';
@@ -62,4 +65,23 @@ export async function addAvailabilitySlot(slot: AvailabilitySlot): Promise<strin
   const { addDoc } = await import('firebase/firestore');
   const ref = await addDoc(slotsRef, slot);
   return ref.id;
+}
+
+// ─── Saved pros ───────────────────────────────────────────────────────────────
+
+/** Add a pro to a consumer's saved list. */
+export async function savePro(consumerId: string, proId: string): Promise<void> {
+  await updateDoc(doc(usersRef, consumerId), { savedProIds: arrayUnion(proId) });
+}
+
+/** Remove a pro from a consumer's saved list. */
+export async function unsavePro(consumerId: string, proId: string): Promise<void> {
+  await updateDoc(doc(usersRef, consumerId), { savedProIds: arrayRemove(proId) });
+}
+
+/** Fetch full ProProfile documents for an array of pro IDs. */
+export async function getSavedProProfiles(proIds: string[]): Promise<ProProfile[]> {
+  if (proIds.length === 0) return [];
+  const snaps = await Promise.all(proIds.map((id) => getDoc(doc(usersRef, id))));
+  return snaps.filter((s) => s.exists()).map((s) => s.data() as ProProfile);
 }

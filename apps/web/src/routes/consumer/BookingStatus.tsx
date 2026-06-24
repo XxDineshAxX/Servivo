@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useBooking } from '../../hooks/useBooking';
-import { updateBookingStatus } from '@servivo/firebase';
+import { updateBookingStatus, submitRating } from '@servivo/firebase';
 import { StatusBadge, Button, Card } from '@servivo/ui';
+import { ThemeToggle } from '../../components/ThemeToggle';
 
 const statusMessages: Record<string, string> = {
   pending:     'Waiting for the pro to accept your request…',
@@ -13,14 +14,39 @@ const statusMessages: Record<string, string> = {
   cancelled:   'This booking was cancelled.',
 };
 
+function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [hover, setHover] = useState(0);
+  return (
+    <div className="flex gap-1 justify-center my-3">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => onChange(star)}
+          onMouseEnter={() => setHover(star)}
+          onMouseLeave={() => setHover(0)}
+          className="text-3xl transition-transform hover:scale-110 focus:outline-none"
+        >
+          {star <= (hover || value) ? '⭐' : '☆'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function BookingStatus() {
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
   const { booking, loading } = useBooking(bookingId ?? null);
 
+  const [rating, setRating] = useState(0);
+  const [review, setReview] = useState('');
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [ratingDone, setRatingDone] = useState(false);
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500">
+      <div className="min-h-screen flex items-center justify-center text-gray-500 dark:bg-gray-900">
         Loading booking…
       </div>
     );
@@ -28,8 +54,8 @@ export default function BookingStatus() {
 
   if (!booking) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">Booking not found.</p>
+      <div className="min-h-screen flex items-center justify-center dark:bg-gray-900">
+        <p className="text-gray-500 dark:text-gray-400">Booking not found.</p>
       </div>
     );
   }
@@ -39,53 +65,149 @@ export default function BookingStatus() {
     navigate('/consumer');
   };
 
+  const handleSubmitRating = async () => {
+    if (rating === 0) return;
+    setSubmittingRating(true);
+    try {
+      await submitRating(booking.id, booking.proId, rating, review.trim() || undefined);
+      setRatingDone(true);
+    } finally {
+      setSubmittingRating(false);
+    }
+  };
+
+  const alreadyRated = !!booking.ratedAt || ratingDone;
+
   return (
-    <div className="min-h-screen bg-indigo-50 p-4 flex flex-col items-center justify-center">
-      <div className="w-full max-w-sm">
-        <Card>
+    <div className="min-h-screen bg-indigo-50 dark:bg-gray-900 p-4 flex flex-col items-center justify-center">
+      <div className="w-full max-w-sm space-y-3">
+        <div className="flex justify-end">
+          <ThemeToggle />
+        </div>
+        <Card className="dark:bg-gray-800 dark:border-gray-700">
           <div className="text-center mb-6">
-            <h1 className="text-xl font-bold text-gray-900 mb-2">Booking Status</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Booking Status</h1>
             <StatusBadge status={booking.status} />
           </div>
 
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-500">Pro</span>
-              <span className="font-medium">{booking.proName}</span>
+              <span className="text-gray-500 dark:text-gray-400">Pro</span>
+              <span className="font-medium text-gray-900 dark:text-white">{booking.proName}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Service</span>
-              <span className="font-medium">{booking.serviceType}</span>
+              <span className="text-gray-500 dark:text-gray-400">Service</span>
+              <span className="font-medium text-gray-900 dark:text-white">{booking.serviceType}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Distance</span>
-              <span className="font-medium">{booking.distanceKm.toFixed(1)} km</span>
+              <span className="text-gray-500 dark:text-gray-400">Distance</span>
+              <span className="font-medium text-gray-900 dark:text-white">{booking.distanceKm.toFixed(1)} km</span>
             </div>
             {booking.acceptedAt && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Accepted at</span>
-                <span className="font-medium">{new Date(booking.acceptedAt).toLocaleTimeString()}</span>
+                <span className="text-gray-500 dark:text-gray-400">Accepted at</span>
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {new Date(booking.acceptedAt).toLocaleTimeString()}
+                </span>
               </div>
             )}
           </div>
 
-          <p className="mt-4 text-sm text-center text-indigo-700 font-medium">
+          <p className="mt-4 text-sm text-center text-indigo-700 dark:text-indigo-400 font-medium">
             {statusMessages[booking.status]}
           </p>
 
+          {/* Action buttons */}
           <div className="mt-6 space-y-2">
+            {/* Always: back to home */}
+            {['accepted', 'in_progress', 'pending'].includes(booking.status) && (
+              <Button
+                variant="ghost"
+                size="md"
+                className="w-full"
+                onClick={() => navigate('/consumer')}
+              >
+                ← Back to home
+              </Button>
+            )}
+
+            {/* Message the pro (when active) */}
+            {['accepted', 'in_progress'].includes(booking.status) && (
+              <Button
+                variant="secondary"
+                size="md"
+                className="w-full"
+                onClick={() => navigate(`/consumer/chat/${booking.proId}`)}
+              >
+                💬 Message {booking.proName.split(' ')[0]}
+              </Button>
+            )}
+
+            {/* Cancel (when still pending) */}
             {booking.status === 'pending' && (
               <Button variant="danger" size="md" className="w-full" onClick={handleCancel}>
                 Cancel Request
               </Button>
             )}
+
+            {/* Find another (when done/rejected/cancelled) */}
             {['completed', 'rejected', 'cancelled'].includes(booking.status) && (
-              <Button variant="primary" size="md" className="w-full" onClick={() => navigate('/consumer')}>
+              <Button
+                variant="primary"
+                size="md"
+                className="w-full"
+                onClick={() => navigate('/consumer')}
+              >
                 Find Another Pro
               </Button>
             )}
           </div>
         </Card>
+
+        {/* ── Rating card (completed bookings) ────────────────────────── */}
+        {booking.status === 'completed' && (
+          <Card className="dark:bg-gray-800 dark:border-gray-700">
+            {alreadyRated ? (
+              <div className="text-center py-2">
+                <p className="text-2xl mb-1">🎉</p>
+                <p className="font-semibold text-gray-900 dark:text-white">Thanks for your review!</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  You rated {booking.proName.split(' ')[0]} {booking.rating ?? rating} ⭐
+                </p>
+              </div>
+            ) : (
+              <>
+                <h3 className="font-bold text-gray-900 dark:text-white text-center mb-1">
+                  How was {booking.proName.split(' ')[0]}?
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center mb-2">
+                  Your rating helps other consumers make better choices
+                </p>
+
+                <StarRating value={rating} onChange={setRating} />
+
+                <textarea
+                  value={review}
+                  onChange={(e) => setReview(e.target.value)}
+                  placeholder="Leave an optional review…"
+                  rows={2}
+                  className="w-full mt-2 border dark:border-gray-600 rounded-lg px-3 py-2 text-sm resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+
+                <Button
+                  variant="primary"
+                  size="md"
+                  className="w-full mt-3"
+                  onClick={handleSubmitRating}
+                  loading={submittingRating}
+                  disabled={rating === 0}
+                >
+                  Submit Rating
+                </Button>
+              </>
+            )}
+          </Card>
+        )}
       </div>
     </div>
   );

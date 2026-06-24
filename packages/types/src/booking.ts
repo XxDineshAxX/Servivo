@@ -27,6 +27,12 @@ export interface Booking {
   completedAt?: number;
   /** Optional consumer note */
   note?: string;
+  /** Consumer's star rating (1–5) after completion */
+  rating?: number;
+  /** Optional consumer review text */
+  review?: string;
+  /** When the consumer submitted the rating */
+  ratedAt?: number;
 }
 
 export interface BookingRequest {

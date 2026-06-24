@@ -25,13 +25,17 @@ export async function signUpConsumer(
   email: string,
   password: string,
   displayName: string,
+  opts?: { username?: string; address?: string },
 ): Promise<ConsumerProfile> {
   const { user } = await createUserWithEmailAndPassword(auth, email, password);
   const profile: ConsumerProfile = {
     uid: user.uid,
     email,
     displayName,
+    ...(opts?.username ? { username: opts.username } : {}),
+    ...(opts?.address  ? { address:  opts.address  } : {}),
     role: 'consumer',
+    savedProIds: [],
     createdAt: Date.now(),
   };
   await setDoc(doc(db, 'users', user.uid), profile);
@@ -43,15 +47,18 @@ export async function signUpPro(
   password: string,
   displayName: string,
   serviceTypes: string[],
+  opts?: { username?: string; address?: string },
 ): Promise<ProProfile> {
   const { user } = await createUserWithEmailAndPassword(auth, email, password);
   const profile: ProProfile = {
     uid: user.uid,
     email,
     displayName,
+    ...(opts?.username ? { username: opts.username } : {}),
+    ...(opts?.address  ? { address:  opts.address  } : {}),
     role: 'pro',
     serviceTypes,
-    location: { lat: 0, lng: 0 }, // Updated on first app open
+    location: { lat: 0, lng: 0 },
     isOnline: false,
     rating: 5.0,
     completedBookings: 0,

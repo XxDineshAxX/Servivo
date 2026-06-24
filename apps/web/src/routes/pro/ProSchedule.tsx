@@ -4,6 +4,7 @@ import type { ProProfile } from '@servivo/types';
 import { addAvailabilitySlot } from '@servivo/firebase';
 import { useAuthStore } from '../../store/authStore';
 import { Button } from '@servivo/ui';
+import { ThemeToggle } from '../../components/ThemeToggle';
 
 interface SlotForm {
   date: string;
@@ -47,18 +48,21 @@ export default function ProSchedule() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b px-4 py-3 flex items-center gap-3">
-        <button onClick={() => navigate('/pro')} className="text-indigo-600 text-sm">← Back</button>
-        <h1 className="font-bold text-gray-900">Manage Schedule</h1>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <header className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate('/pro')} className="text-indigo-600 dark:text-indigo-400 text-sm">← Back</button>
+          <h1 className="font-bold text-gray-900 dark:text-white">Manage Schedule</h1>
+        </div>
+        <ThemeToggle />
       </header>
 
       <div className="p-4 max-w-md mx-auto">
-        <p className="text-sm text-gray-500 mb-6">
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           Add time slots when you're available. Consumers will only see you during these windows.
         </p>
 
-        <form onSubmit={handleSave} className="bg-white rounded-xl shadow-sm p-5 space-y-4">
+        <form onSubmit={handleSave} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
             <input
@@ -67,7 +71,7 @@ export default function ProSchedule() {
               value={form.date}
               min={new Date().toISOString().split('T')[0]}
               onChange={(e) => setForm({ ...form, date: e.target.value })}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full border dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
@@ -79,7 +83,7 @@ export default function ProSchedule() {
                 required
                 value={form.startTime}
                 onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <div>
@@ -89,7 +93,7 @@ export default function ProSchedule() {
                 required
                 value={form.endTime}
                 onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </div>

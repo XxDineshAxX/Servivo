@@ -3,6 +3,7 @@ import {
   collection,
   doc,
   addDoc,
+  getDoc,
   updateDoc,
   onSnapshot,
   query,
@@ -71,6 +72,41 @@ export function subscribeConsumerBookings(
     (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Booking))),
     (err) => { console.error('subscribeConsumerBookings error:', err); callback([]); },
   );
+}
+
+// ─── Rating ───────────────────────────────────────────────────────────────────
+
+/** Submit a consumer's star rating after a booking is completed.
+ *  Updates the booking document and recalculates the pro's rolling average. */
+export async function submitRating(
+  bookingId: string,
+  proId: string,
+  rating: number,
+  review?: string,
+): Promise<void> {
+  // 1. Save rating on the booking
+  await updateDoc(doc(bookingsRef, bookingId), {
+    rating,
+    ...(review ? { review } : {}),
+    ratedAt: Date.now(),
+  });
+
+  // 2. Update pro's rolling average rating + increment completedBookings
+  const usersRef = collection(db, 'users');
+  const proSnap = await getDoc(doc(usersRef, proId));
+  if (proSnap.exists()) {
+    const pro = proSnap.data() as any;
+    const oldCount: number = pro.completedBookings ?? 0;
+    const oldRating: number = pro.rating ?? 5.0;
+    const newCount = oldCount + 1;
+    const newRating = oldCount === 0
+      ? rating
+      : Math.round(((oldRating * oldCount + rating) / newCount) * 10) / 10;
+    await updateDoc(doc(usersRef, proId), {
+      rating: newRating,
+      completedBookings: newCount,
+    });
+  }
 }
 
 /** Listen to all active bookings directed at a pro.

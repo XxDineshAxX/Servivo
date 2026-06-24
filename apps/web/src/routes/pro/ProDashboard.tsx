@@ -7,6 +7,7 @@ import { useProBookings } from '../../hooks/useBooking';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { BookingCard } from '../../components/BookingCard';
 import { Button } from '@servivo/ui';
+import { ThemeToggle } from '../../components/ThemeToggle';
 
 export default function ProDashboard() {
   const navigate = useNavigate();
@@ -82,14 +83,15 @@ export default function ProDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white border-b px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+      <header className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <div>
-          <h1 className="font-bold text-gray-900">Pro Dashboard</h1>
-          <p className="text-xs text-gray-500">{pro?.displayName}</p>
+          <h1 className="font-bold text-gray-900 dark:text-white">Pro Dashboard</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{pro?.displayName}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
           <Button variant="ghost" size="sm" onClick={() => navigate('/pro/schedule')}>
             Schedule
           </Button>
