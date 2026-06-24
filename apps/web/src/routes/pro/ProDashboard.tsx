@@ -7,11 +7,11 @@ import { useProBookings } from '../../hooks/useBooking';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { BookingCard } from '../../components/BookingCard';
 import { Button } from '@servivo/ui';
-import { ThemeToggle } from '../../components/ThemeToggle';
+import { SideMenu, HamburgerButton } from '../../components/SideMenu';
 
 export default function ProDashboard() {
   const navigate = useNavigate();
-  const { profile, signOut } = useAuthStore();
+  const { profile } = useAuthStore();
   const pro = profile as ProProfile | null;
   const { location, error: geoError } = useGeolocation();
   const { bookings, loading } = useProBookings(pro?.uid ?? null);
@@ -48,6 +48,14 @@ export default function ProDashboard() {
   };
 
   const pendingCount = bookings.filter((b) => b.status === 'pending').length;
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const proMenuItems = [
+    { icon: '🏠', label: 'Dashboard', path: '/pro' },
+    { icon: '📋', label: 'Bookings',  path: '/pro/bookings', badge: pendingCount },
+    { icon: '💬', label: 'Messages',  path: '/pro/messages' },
+    { icon: '📅', label: 'Schedule',  path: '/pro/schedule' },
+  ];
 
   const locationBlocked =
     geoError?.toLowerCase().includes('denied') ||
@@ -90,14 +98,10 @@ export default function ProDashboard() {
           <h1 className="font-bold text-gray-900 dark:text-white">Pro Dashboard</h1>
           <p className="text-xs text-gray-500 dark:text-gray-400">{pro?.displayName}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <Button variant="ghost" size="sm" onClick={() => navigate('/pro/schedule')}>
-            Schedule
-          </Button>
-          <Button variant="ghost" size="sm" onClick={signOut}>Sign out</Button>
-        </div>
+        <HamburgerButton onClick={() => setMenuOpen(true)} />
       </header>
+
+      <SideMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} items={proMenuItems} />
 
       <div className="p-4 max-w-lg mx-auto">
 

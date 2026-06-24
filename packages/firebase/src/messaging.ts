@@ -55,18 +55,23 @@ export async function sendMessage(
   senderId: string,
   text: string,
 ): Promise<void> {
+  const trimmed = text.trim();
   const messagesRef = collection(db, 'conversations', conversationId, 'messages');
   const msg: Omit<Message, 'id'> = {
     conversationId,
     senderId,
-    text: text.trim(),
+    text: trimmed,
     createdAt: Date.now(),
   };
+  // Add the message first
   await addDoc(messagesRef, msg);
-  await updateDoc(doc(conversationsRef, conversationId), {
-    lastMessage: text.trim(),
-    lastAt: Date.now(),
-  });
+  // Update conversation preview — use setDoc with merge so it works even if the
+  // conversation doc was not yet created (race condition on first message)
+  await setDoc(
+    doc(conversationsRef, conversationId),
+    { lastMessage: trimmed, lastAt: Date.now() },
+    { merge: true },
+  );
 }
 
 /** Subscribe to all conversations a user participates in. */

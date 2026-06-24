@@ -1,76 +1,71 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { Message } from '@servivo/types';
-import type { ConsumerProfile, ProProfile } from '@servivo/types';
+import type { Message, ProProfile } from '@servivo/types';
 import {
   getOrCreateConversation,
   sendMessage,
   subscribeMessages,
   getUserProfile,
-  makeConversationId,
 } from '@servivo/firebase';
 import { useAuthStore } from '../../store/authStore';
 import { ThemeToggle } from '../../components/ThemeToggle';
 
-export default function Chat() {
-  const { proId } = useParams<{ proId: string }>();
+export default function ProChat() {
+  const { consumerId } = useParams<{ consumerId: string }>();
   const navigate = useNavigate();
   const { profile } = useAuthStore();
+  const pro = profile as ProProfile | null;
 
-  const consumer = profile as ConsumerProfile | null;
-
-  // Compute conversation ID immediately — no need to wait for Firestore
-  const conversationId = consumer?.uid && proId
-    ? makeConversationId(consumer.uid, proId)
+  // Compute conversation ID immediately
+  const conversationId = pro?.uid && consumerId
+    ? makeConversationId(consumerId, pro.uid)
     : null;
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
-  const [proProfile, setProProfile] = useState<ProProfile | null>(null);
+  const [consumerName, setConsumerName] = useState<string>('');
   const [profileLoading, setProfileLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Load pro profile and ensure conversation doc exists in Firestore
+  // Load consumer profile and ensure conversation doc exists
   useEffect(() => {
-    if (!consumer || !proId || !conversationId) return;
-
+    if (!pro || !consumerId || !conversationId) return;
     (async () => {
       try {
-        const pro = await getUserProfile(proId) as ProProfile;
-        setProProfile(pro);
-        // Ensure the document exists — creates it if not
+        const consumer = await getUserProfile(consumerId);
+        setConsumerName(consumer.displayName);
         await getOrCreateConversation(
-          consumer.uid,
-          proId,
+          consumerId,
+          pro.uid,
           consumer.displayName,
           pro.displayName,
         );
       } catch (e) {
-        console.error('Failed to init conversation:', e);
+        console.error('Failed to init pro conversation:', e);
       } finally {
         setProfileLoading(false);
       }
     })();
-  }, [consumer?.uid, proId]);
+  }, [pro?.uid, consumerId]);
 
-  // Subscribe to messages as soon as we have a conversationId
+  // Subscribe to messages as soon as conversationId is known
   useEffect(() => {
     if (!conversationId) return;
     return subscribeMessages(conversationId, setMessages);
   }, [conversationId]);
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!conversationId || !consumer || !text.trim()) return;
+    if (!conversationId || !pro || !text.trim()) return;
     setSending(true);
     try {
-      await sendMessage(conversationId, consumer.uid, text);
+      await sendMessage(conversationId, pro.uid, text);
       setText('');
     } finally {
       setSending(false);
@@ -93,19 +88,12 @@ export default function Chat() {
           </button>
           <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
             <span className="text-indigo-700 dark:text-indigo-300 font-bold">
-              {proProfile?.displayName?.charAt(0)?.toUpperCase() ?? '?'}
+              {consumerName?.charAt(0)?.toUpperCase() ?? '?'}
             </span>
           </div>
-          <div>
-            <p className="font-semibold text-sm text-gray-900 dark:text-white">
-              {proProfile?.displayName ?? 'Loading…'}
-            </p>
-            {proProfile?.serviceTypes && (
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {proProfile.serviceTypes.join(', ')}
-              </p>
-            )}
-          </div>
+          <p className="font-semibold text-sm text-gray-900 dark:text-white">
+            {consumerName || 'Loading…'}
+          </p>
         </div>
         <ThemeToggle />
       </header>
@@ -117,18 +105,13 @@ export default function Chat() {
         ) : messages.length === 0 ? (
           <div className="text-center text-gray-400 dark:text-gray-500 py-12">
             <p className="text-3xl mb-2">👋</p>
-            <p className="text-sm">
-              Say hello to {proProfile?.displayName ?? 'the pro'}!
-            </p>
+            <p className="text-sm">Start the conversation with {consumerName}!</p>
           </div>
         ) : (
           messages.map((msg) => {
-            const isMine = msg.senderId === consumer?.uid;
+            const isMine = msg.senderId === pro?.uid;
             return (
-              <div
-                key={msg.id}
-                className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
-              >
+              <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                 <div
                   className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${
                     isMine
@@ -137,11 +120,7 @@ export default function Chat() {
                   }`}
                 >
                   <p>{msg.text}</p>
-                  <p
-                    className={`text-[10px] mt-1 ${
-                      isMine ? 'text-indigo-200' : 'text-gray-400 dark:text-gray-500'
-                    }`}
-                  >
+                  <p className={`text-[10px] mt-1 ${isMine ? 'text-indigo-200' : 'text-gray-400 dark:text-gray-500'}`}>
                     {formatTime(msg.createdAt)}
                   </p>
                 </div>

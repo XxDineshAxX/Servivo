@@ -109,6 +109,25 @@ export async function submitRating(
   }
 }
 
+/** Listen to ALL bookings for a pro (active + past), sorted newest first.
+ *  Used by the pro booking history page. */
+export function subscribeAllProBookings(
+  proId: string,
+  callback: (bookings: Booking[]) => void,
+): Unsubscribe {
+  const q = query(bookingsRef, where('proId', '==', proId));
+  return onSnapshot(
+    q,
+    (snap) => {
+      const all = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() } as Booking))
+        .sort((a, b) => b.createdAt - a.createdAt);
+      callback(all);
+    },
+    (err) => { console.error('subscribeAllProBookings error:', err); callback([]); },
+  );
+}
+
 /** Listen to all active bookings directed at a pro.
  *
  * NOTE: This query requires a composite Firestore index on

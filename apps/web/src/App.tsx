@@ -9,6 +9,7 @@ import './store/themeStore';
 import ConsumerLogin from './routes/consumer/ConsumerLogin';
 import ConsumerHome from './routes/consumer/ConsumerHome';
 import BookingStatus from './routes/consumer/BookingStatus';
+import ConsumerBookings from './routes/consumer/ConsumerBookings';
 import ChatList from './routes/consumer/ChatList';
 import Chat from './routes/consumer/Chat';
 
@@ -16,6 +17,9 @@ import Chat from './routes/consumer/Chat';
 import ProLogin from './routes/pro/ProLogin';
 import ProDashboard from './routes/pro/ProDashboard';
 import ProSchedule from './routes/pro/ProSchedule';
+import ProBookings from './routes/pro/ProBookings';
+import ProMessages from './routes/pro/ProMessages';
+import ProChat from './routes/pro/ProChat';
 
 // Landing / role selector
 import Landing from './routes/Landing';
@@ -52,17 +56,21 @@ export default function App() {
         <Route path="/consumer/login" element={<ConsumerLogin />} />
 
         {/* Consumer app — protected */}
-        <Route path="/consumer"                       element={isConsumer ? <ConsumerHome />   : <Navigate to="/consumer/login" replace />} />
-        <Route path="/consumer/booking/:bookingId"    element={isConsumer ? <BookingStatus />  : <Navigate to="/consumer/login" replace />} />
-        <Route path="/consumer/chats"                 element={isConsumer ? <ChatList />       : <Navigate to="/consumer/login" replace />} />
-        <Route path="/consumer/chat/:proId"           element={isConsumer ? <Chat />           : <Navigate to="/consumer/login" replace />} />
+        <Route path="/consumer"                       element={isConsumer ? <ConsumerHome />      : <Navigate to="/consumer/login" replace />} />
+        <Route path="/consumer/booking/:bookingId"    element={isConsumer ? <BookingStatus />     : <Navigate to="/consumer/login" replace />} />
+        <Route path="/consumer/bookings"              element={isConsumer ? <ConsumerBookings />  : <Navigate to="/consumer/login" replace />} />
+        <Route path="/consumer/chats"                 element={isConsumer ? <ChatList />          : <Navigate to="/consumer/login" replace />} />
+        <Route path="/consumer/chat/:proId"           element={isConsumer ? <Chat />              : <Navigate to="/consumer/login" replace />} />
 
         {/* Pro auth */}
         <Route path="/pro/login" element={<ProLogin />} />
 
         {/* Pro app — protected */}
-        <Route path="/pro"          element={isPro ? <ProDashboard /> : <Navigate to="/pro/login" replace />} />
-        <Route path="/pro/schedule" element={isPro ? <ProSchedule />  : <Navigate to="/pro/login" replace />} />
+        <Route path="/pro"                  element={isPro ? <ProDashboard /> : <Navigate to="/pro/login" replace />} />
+        <Route path="/pro/schedule"         element={isPro ? <ProSchedule />  : <Navigate to="/pro/login" replace />} />
+        <Route path="/pro/bookings"         element={isPro ? <ProBookings />  : <Navigate to="/pro/login" replace />} />
+        <Route path="/pro/messages"         element={isPro ? <ProMessages />  : <Navigate to="/pro/login" replace />} />
+        <Route path="/pro/chat/:consumerId" element={isPro ? <ProChat />      : <Navigate to="/pro/login" replace />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

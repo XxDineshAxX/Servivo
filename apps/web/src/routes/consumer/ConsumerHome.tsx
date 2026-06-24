@@ -8,14 +8,13 @@ import { useCreateBooking } from '../../hooks/useBooking';
 import { getSavedProProfiles, unsavePro } from '@servivo/firebase';
 import { MapView } from '../../components/MapView';
 import { ProCard } from '../../components/ProCard';
-import { Button } from '@servivo/ui';
-import { ThemeToggle } from '../../components/ThemeToggle';
+import { SideMenu, HamburgerButton } from '../../components/SideMenu';
 
 type Tab = 'nearby' | 'saved';
 
 export default function ConsumerHome() {
   const navigate = useNavigate();
-  const { profile, signOut, setProfile } = useAuthStore();
+  const { profile, setProfile } = useAuthStore();
   const consumer = profile as ConsumerProfile | null;
 
   const { location, error: geoError, loading: geoLoading } = useGeolocation();
@@ -24,6 +23,13 @@ export default function ConsumerHome() {
 
   const [bookingForProId, setBookingForProId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('nearby');
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const consumerMenuItems = [
+    { icon: '🏠', label: 'Home',     path: '/consumer' },
+    { icon: '📋', label: 'Bookings', path: '/consumer/bookings' },
+    { icon: '💬', label: 'Messages', path: '/consumer/chats' },
+  ];
   const [savedPros, setSavedPros] = useState<ProProfile[]>([]);
   const [savedLoading, setSavedLoading] = useState(false);
 
@@ -130,18 +136,10 @@ export default function ConsumerHome() {
           <h1 className="font-bold text-gray-900 dark:text-white">Servivo</h1>
           <p className="text-xs text-gray-500 dark:text-gray-400">Hi, {profile?.displayName}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <button
-            onClick={() => navigate('/consumer/chats')}
-            className="relative w-8 h-8 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-            title="Messages"
-          >
-            💬
-          </button>
-          <Button variant="ghost" size="sm" onClick={signOut}>Sign out</Button>
-        </div>
+        <HamburgerButton onClick={() => setMenuOpen(true)} />
       </header>
+
+      <SideMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} items={consumerMenuItems} />
 
       {/* Tab bar */}
       <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 flex">

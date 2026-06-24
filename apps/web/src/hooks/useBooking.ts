@@ -5,6 +5,7 @@ import {
   updateBookingStatus,
   subscribeToBooking,
   subscribeProBookings,
+  subscribeAllProBookings,
   subscribeConsumerBookings,
 } from '@servivo/firebase';
 
@@ -69,6 +70,24 @@ export function useProBookings(proId: string | null) {
   };
 
   return { bookings, loading, respond };
+}
+
+// ─── Pro: full booking history (active + past) ───────────────────────────────
+
+export function useAllProBookings(proId: string | null) {
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!proId) return;
+    const unsub = subscribeAllProBookings(proId, (b) => {
+      setBookings(b);
+      setLoading(false);
+    });
+    return unsub;
+  }, [proId]);
+
+  return { bookings, loading };
 }
 
 // ─── Consumer: watch their booking history ────────────────────────────────────
