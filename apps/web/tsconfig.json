@@ -18,7 +18,11 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@servivo/types": ["../../packages/types/src/index.ts"],
+      "@servivo/firebase": ["../../packages/firebase/src/index.ts"],
+      "@servivo/ui": ["../../packages/ui/src/index.ts"],
+      "@servivo/scheduling": ["../../packages/scheduling/src/index.ts"]
     }
   },
   "include": ["src"],

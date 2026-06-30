@@ -199,6 +199,17 @@ export default function ProLogin() {
           </button>
         </p>
 
+        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 text-center">
+          <p className="text-xs text-gray-400 dark:text-gray-500">Looking to book a service?</p>
+          <button
+            type="button"
+            onClick={() => navigate('/consumer/login')}
+            className="mt-1 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+          >
+            Sign in as a consumer →
+          </button>
+        </div>
+
         <p className="text-center text-xs text-gray-400 mt-3">
           <a href="/" className="hover:underline">← Back to home</a>
         </p>

@@ -9,6 +9,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@servivo/types': path.resolve(__dirname, '../../packages/types/src/index.ts'),
+      '@servivo/firebase': path.resolve(__dirname, '../../packages/firebase/src/index.ts'),
+      '@servivo/ui': path.resolve(__dirname, '../../packages/ui/src/index.ts'),
+      '@servivo/scheduling': path.resolve(__dirname, '../../packages/scheduling/src/index.ts'),
     },
   },
   server: {

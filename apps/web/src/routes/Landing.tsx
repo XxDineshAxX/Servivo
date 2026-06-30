@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@servivo/ui';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { AppDemo } from '../components/AppDemo';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -57,9 +58,15 @@ export default function Landing() {
       <section className="py-20 px-6 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-4">How it works</h2>
-          <p className="text-center text-gray-500 dark:text-gray-400 mb-14 max-w-xl mx-auto">
+          <p className="text-center text-gray-500 dark:text-gray-400 mb-10 max-w-xl mx-auto">
             From request to doorstep in three simple steps.
           </p>
+
+          {/* Animated demo */}
+          <div className="mb-16">
+            <AppDemo />
+          </div>
+
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { step: '1', icon: '📍', title: 'Share your location', desc: 'Open the app and we instantly find all available pros within range of you right now.' },

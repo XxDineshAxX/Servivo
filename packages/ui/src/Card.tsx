@@ -31,8 +31,8 @@ export function CardHeader({ title, subtitle, right }: CardHeaderProps) {
   return (
     <div className="flex items-start justify-between mb-3">
       <div>
-        <h3 className="font-semibold text-gray-900 text-base">{title}</h3>
-        {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
+        <h3 className="font-semibold text-gray-900 dark:text-white text-base">{title}</h3>
+        {subtitle && <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{subtitle}</p>}
       </div>
       {right && <div className="ml-4 flex-shrink-0">{right}</div>}
     </div>
