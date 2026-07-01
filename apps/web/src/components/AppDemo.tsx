@@ -13,6 +13,10 @@ const STEPS = [
     label: 'Pro on the way',
     screen: 'status',
   },
+  {
+    label: 'Pro profile',
+    screen: 'profile',
+  },
 ];
 
 const STEP_DURATION = 3000; // ms per screen
@@ -69,6 +73,7 @@ export function AppDemo() {
             {step === 0 && <MapScreen />}
             {step === 1 && <BookScreen />}
             {step === 2 && <StatusScreen />}
+            {step === 3 && <ProfileScreen />}
           </div>
         </div>
         {/* Home indicator */}
@@ -211,6 +216,83 @@ function DetailRow({ icon, label, value }: { icon: string; label: string; value:
   );
 }
 
+/* ─── Screen 4: Pro Profile ──────────────────────────────────── */
+function ProfileScreen() {
+  return (
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-800 overflow-y-auto">
+      {/* Top banner */}
+      <div className="bg-indigo-600 px-4 pt-10 pb-8 text-white text-center relative">
+        <p className="text-[10px] opacity-60 absolute top-3 left-4">← Back</p>
+        {/* Avatar */}
+        <div className="w-16 h-16 rounded-full bg-orange-500 mx-auto flex items-center justify-center text-2xl font-bold text-white shadow-lg border-2 border-white mb-2">
+          MR
+        </div>
+        <p className="font-bold text-sm">Mike Rodriguez</p>
+        <p className="text-[10px] opacity-75">@mikefix · Handyman</p>
+        <div className="flex items-center justify-center gap-1 mt-1">
+          <span className="text-yellow-300 text-[11px]">★★★★★</span>
+          <span className="text-[10px] opacity-80">4.9 (47 jobs)</span>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="px-4 py-3 space-y-3">
+        {/* Badges */}
+        <div className="flex flex-wrap gap-1.5">
+          {['Handyman', 'Plumbing', 'Carpentry'].map((s) => (
+            <span key={s} className="text-[9px] bg-indigo-50 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 rounded-full px-2 py-0.5 font-medium">
+              {s}
+            </span>
+          ))}
+        </div>
+
+        {/* Info rows */}
+        <div className="bg-white dark:bg-gray-700 rounded-xl px-3 py-2 space-y-2 shadow-sm">
+          <MiniRow label="Area" value="Dallas County" />
+          <MiniRow label="Rate" value="$55 / hr · varies by job" />
+          <MiniRow label="Bio" value="10+ yrs exp. Fast, reliable, licensed." />
+        </div>
+
+        {/* Reviews */}
+        <p className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Reviews (3)</p>
+        <ReviewMini name="Jessica T." stars={5} text="Mike was amazing, fixed our sink in 20 min!" />
+        <ReviewMini name="Carlos D." stars={5} text="Super professional and on time. Highly recommend." />
+
+        {/* Buttons */}
+        <div className="flex gap-2 pb-4">
+          <div className="flex-1 bg-indigo-600 text-white text-[10px] font-bold py-2 rounded-xl text-center shadow">
+            💬 Message
+          </div>
+          <div className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-[10px] font-bold py-2 rounded-xl text-center shadow">
+            🤍 Save
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex gap-2 items-start">
+      <span className="text-[9px] text-gray-400 w-8 flex-shrink-0 pt-0.5">{label}</span>
+      <span className="text-[9px] font-semibold text-gray-800 dark:text-white leading-tight">{value}</span>
+    </div>
+  );
+}
+
+function ReviewMini({ name, stars, text }: { name: string; stars: number; text: string }) {
+  return (
+    <div className="bg-white dark:bg-gray-700 rounded-xl px-3 py-2 shadow-sm">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[9px] font-bold text-gray-800 dark:text-white">{name}</span>
+        <span className="text-yellow-400 text-[9px]">{'★'.repeat(stars)}</span>
+      </div>
+      <p className="text-[9px] text-gray-500 dark:text-gray-400 leading-tight">{text}</p>
+    </div>
+  );
+}
+
 /* ─── Screen 3: Status ───────────────────────────────────────── */
 function StatusScreen() {
   const [progress, setProgress] = useState(15);
@@ -275,4 +357,8 @@ function StatusScreen() {
           <p className="text-xs font-bold text-gray-900 dark:text-white">Mike Rodriguez</p>
           <p className="text-[10px] text-gray-400">⭐ 4.9 · Handyman</p>
         </div>
-        <button className="w-7 h-7 bg-indigo-600 rounded-full flex items-center justify-center text-white 
+        <button className="w-7 h-7 bg-indigo-600 rounded-full flex items-center justify-center text-white text-xs shadow">💬</button>
+      </div>
+    </div>
+  );
+}

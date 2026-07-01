@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import type { NearbyAvailablePro, ConsumerProfile, ProProfile } from '@servivo/types';
 import { useAuthStore } from '../../store/authStore';
 import { useGeolocation } from '../../hooks/useGeolocation';
@@ -214,7 +214,12 @@ export default function ConsumerHome() {
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 dark:text-white">{pro.displayName}</p>
+                  <Link
+                    to={`/pro/profile/${pro.uid}`}
+                    className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline block truncate"
+                  >
+                    {pro.displayName}
+                  </Link>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{pro.serviceTypes.join(', ')}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     ⭐ {pro.rating.toFixed(1)} · {pro.completedBookings} jobs

@@ -33,6 +33,12 @@ export interface Booking {
   review?: string;
   /** When the consumer submitted the rating */
   ratedAt?: number;
+  /** Pro's rating of the consumer (1–5) after completion */
+  consumerRating?: number;
+  /** Pro's review text of the consumer */
+  consumerReview?: string;
+  /** When the pro submitted the consumer rating */
+  consumerRatedAt?: number;
 }
 
 export interface BookingRequest {

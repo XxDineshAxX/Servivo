@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import type { NearbyAvailablePro, ConsumerProfile } from '@servivo/types';
 import { savePro, unsavePro } from '@servivo/firebase';
 import { useAuthStore } from '../store/authStore';
@@ -41,7 +41,15 @@ export function ProCard({ pro, rank, onBook, loading }: ProCardProps) {
   return (
     <Card className="mb-3 dark:bg-gray-800 dark:border-gray-700">
       <CardHeader
-        title={pro.proName}
+        title={
+          <Link
+            to={`/pro/profile/${pro.proId}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold"
+          >
+            {pro.proName}
+          </Link>
+        }
         subtitle={pro.serviceTypes.join(', ')}
         right={
           <div className="flex items-center gap-2">

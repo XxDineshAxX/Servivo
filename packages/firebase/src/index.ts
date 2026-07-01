@@ -3,3 +3,4 @@ export * from './auth';
 export * from './bookings';
 export * from './pros';
 export * from './messaging';
+export * from './reviews';

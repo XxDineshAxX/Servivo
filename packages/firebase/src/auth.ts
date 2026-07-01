@@ -25,7 +25,7 @@ export async function signUpConsumer(
   email: string,
   password: string,
   displayName: string,
-  opts?: { username?: string; address?: string },
+  opts?: { username?: string; address?: string; county?: string; bio?: string },
 ): Promise<ConsumerProfile> {
   const { user } = await createUserWithEmailAndPassword(auth, email, password);
   const profile: ConsumerProfile = {
@@ -34,6 +34,8 @@ export async function signUpConsumer(
     displayName,
     ...(opts?.username ? { username: opts.username } : {}),
     ...(opts?.address  ? { address:  opts.address  } : {}),
+    ...(opts?.county   ? { county:   opts.county   } : {}),
+    ...(opts?.bio      ? { bio:      opts.bio      } : {}),
     role: 'consumer',
     savedProIds: [],
     createdAt: Date.now(),
@@ -47,15 +49,28 @@ export async function signUpPro(
   password: string,
   displayName: string,
   serviceTypes: string[],
-  opts?: { username?: string; address?: string },
+  opts?: {
+    username?: string;
+    address?: string;
+    county?: string;
+    bio?: string;
+    hourlyRate?: number;
+    rateNote?: string;
+    servesFullMetroplex?: boolean;
+  },
 ): Promise<ProProfile> {
   const { user } = await createUserWithEmailAndPassword(auth, email, password);
   const profile: ProProfile = {
     uid: user.uid,
     email,
     displayName,
-    ...(opts?.username ? { username: opts.username } : {}),
-    ...(opts?.address  ? { address:  opts.address  } : {}),
+    ...(opts?.username            ? { username:            opts.username            } : {}),
+    ...(opts?.address             ? { address:             opts.address             } : {}),
+    ...(opts?.county              ? { county:              opts.county              } : {}),
+    ...(opts?.bio                 ? { bio:                 opts.bio                 } : {}),
+    ...(opts?.hourlyRate != null  ? { hourlyRate:          opts.hourlyRate          } : {}),
+    ...(opts?.rateNote            ? { rateNote:            opts.rateNote            } : {}),
+    ...(opts?.servesFullMetroplex ? { servesFullMetroplex: opts.servesFullMetroplex } : {}),
     role: 'pro',
     serviceTypes,
     location: { lat: 0, lng: 0 },

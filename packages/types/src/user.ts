@@ -6,30 +6,39 @@ export interface BaseUser {
   displayName: string;
   username?: string;
   address?: string;
+  /** County / general area displayed on profile (not exact address) */
+  county?: string;
+  /** Short bio or tagline */
+  bio?: string;
   photoURL?: string;
   role: UserRole;
-  createdAt: number; // Unix ms
-  fcmToken?: string; // For push notifications
+  createdAt: number;
+  fcmToken?: string;
 }
 
 export interface ConsumerProfile extends BaseUser {
   role: 'consumer';
-  /** IDs of pros the consumer has saved/favourited */
   savedProIds?: string[];
+  /** Average rating received from pros */
+  avgRating?: number;
+  /** Total ratings received from pros */
+  ratingCount?: number;
 }
 
 export interface ProProfile extends BaseUser {
   role: 'pro';
-  /** Service categories the pro offers (e.g. "plumber", "electrician") */
   serviceTypes: string[];
-  /** Current lat/lng — updated on app open and periodically */
   location: GeoPoint;
-  /** Whether the pro is currently accepting new requests */
   isOnline: boolean;
-  /** Average star rating */
+  /** Average star rating from consumers */
   rating: number;
-  /** Total completed bookings */
   completedBookings: number;
+  /** Starting / typical hourly rate in USD */
+  hourlyRate?: number;
+  /** Free-text note about pricing (e.g. "Varies by job type") */
+  rateNote?: string;
+  /** Whether the pro covers the full metroplex vs a single county */
+  servesFullMetroplex?: boolean;
 }
 
 export interface GeoPoint {

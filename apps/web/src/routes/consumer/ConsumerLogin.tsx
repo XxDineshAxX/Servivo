@@ -33,6 +33,8 @@ export default function ConsumerLogin() {
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername]       = useState('');
   const [address, setAddress]         = useState('');
+  const [county, setCounty]           = useState('');
+  const [bio, setBio]                 = useState('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
@@ -48,6 +50,8 @@ export default function ConsumerLogin() {
         await signUpConsumer(email, password, displayName, {
           username: username.trim() || undefined,
           address:  address.trim()  || undefined,
+          county:   county.trim()   || undefined,
+          bio:      bio.trim()      || undefined,
         });
       }
       navigate('/consumer');
@@ -119,6 +123,36 @@ export default function ConsumerLogin() {
                   placeholder="123 Main St, Dallas, TX"
                 />
                 <p className="text-xs text-gray-400 mt-1">Helps pros estimate travel time</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  County
+                  <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={county}
+                  onChange={(e) => setCounty(e.target.value)}
+                  className={inputCls}
+                  placeholder="Dallas County"
+                />
+                <p className="text-xs text-gray-400 mt-1">Shown on your profile instead of your exact address</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Bio
+                  <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(optional)</span>
+                </label>
+                <textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  className={inputCls}
+                  placeholder="A short intro about yourself…"
+                  rows={2}
+                  style={{ resize: 'none' }}
+                />
               </div>
             </>
           )}

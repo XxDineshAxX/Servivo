@@ -21,6 +21,10 @@ import ProBookings from './routes/pro/ProBookings';
 import ProMessages from './routes/pro/ProMessages';
 import ProChat from './routes/pro/ProChat';
 
+// Profile pages (accessible by any authenticated user)
+import ProProfilePage from './routes/ProProfilePage';
+import ConsumerProfilePage from './routes/ConsumerProfilePage';
+
 // Landing / role selector
 import Landing from './routes/Landing';
 
@@ -71,6 +75,16 @@ export default function App() {
         <Route path="/pro/bookings"         element={isPro ? <ProBookings />  : <Navigate to="/pro/login" replace />} />
         <Route path="/pro/messages"         element={isPro ? <ProMessages />  : <Navigate to="/pro/login" replace />} />
         <Route path="/pro/chat/:consumerId" element={isPro ? <ProChat />      : <Navigate to="/pro/login" replace />} />
+
+        {/* Profile pages — any logged-in user */}
+        <Route
+          path="/pro/profile/:proId"
+          element={profile ? <ProProfilePage /> : <Navigate to="/" replace />}
+        />
+        <Route
+          path="/consumer/profile/:consumerId"
+          element={profile ? <ConsumerProfilePage /> : <Navigate to="/" replace />}
+        />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

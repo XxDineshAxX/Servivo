@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import type { ConsumerProfile } from '@servivo/types';
 import type { Conversation } from '@servivo/types';
 import { subscribeConversations } from '@servivo/firebase';
 import { useAuthStore } from '../../store/authStore';
 import { ThemeToggle } from '../../components/ThemeToggle';
+import { UserAvatar } from '../../components/UserAvatar';
 
 export default function ChatList() {
   const navigate = useNavigate();
@@ -101,11 +102,7 @@ export default function ChatList() {
                   >
                     {/* Avatar with unread dot */}
                     <div className="relative flex-shrink-0">
-                      <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
-                        <span className="text-indigo-700 dark:text-indigo-300 font-bold text-lg">
-                          {otherName(c).charAt(0).toUpperCase()}
-                        </span>
-                      </div>
+                      <UserAvatar name={otherName(c)} size="md" />
                       {unread && (
                         <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-900" />
                       )}
@@ -113,9 +110,13 @@ export default function ChatList() {
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <p className={`truncate ${unread ? 'font-bold text-gray-900 dark:text-white' : 'font-semibold text-gray-900 dark:text-white'}`}>
+                      <Link
+                        to={`/pro/profile/${c.proId}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className={`truncate block hover:underline ${unread ? 'font-bold text-indigo-600 dark:text-indigo-400' : 'font-semibold text-gray-900 dark:text-white'}`}
+                      >
                         {otherName(c)}
-                      </p>
+                      </Link>
                       <p className={`text-sm truncate mt-0.5 ${unread ? 'text-gray-800 dark:text-gray-200 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
                         {c.lastMessage || 'No messages yet'}
                       </p>

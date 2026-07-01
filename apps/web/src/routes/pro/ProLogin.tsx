@@ -35,10 +35,15 @@ export default function ProLogin() {
   const [password, setPassword] = useState('');
 
   // Sign-up extras
-  const [displayName, setDisplayName]   = useState('');
-  const [username, setUsername]         = useState('');
-  const [address, setAddress]           = useState('');
-  const [serviceTypes, setServiceTypes] = useState<string[]>([]);
+  const [displayName, setDisplayName]               = useState('');
+  const [username, setUsername]                     = useState('');
+  const [address, setAddress]                       = useState('');
+  const [county, setCounty]                         = useState('');
+  const [bio, setBio]                               = useState('');
+  const [hourlyRate, setHourlyRate]                 = useState('');
+  const [rateNote, setRateNote]                     = useState('');
+  const [servesFullMetroplex, setServesFullMetroplex] = useState(false);
+  const [serviceTypes, setServiceTypes]             = useState<string[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
@@ -58,9 +63,15 @@ export default function ProLogin() {
       if (mode === 'login') {
         await signIn(email, password);
       } else {
+        const parsedRate = parseFloat(hourlyRate);
         await signUpPro(email, password, displayName, serviceTypes, {
-          username: username.trim() || undefined,
-          address:  address.trim()  || undefined,
+          username:            username.trim()  || undefined,
+          address:             address.trim()   || undefined,
+          county:              county.trim()    || undefined,
+          bio:                 bio.trim()       || undefined,
+          hourlyRate:          !isNaN(parsedRate) && parsedRate > 0 ? parsedRate : undefined,
+          rateNote:            rateNote.trim()  || undefined,
+          servesFullMetroplex: servesFullMetroplex || undefined,
         });
       }
       navigate('/pro');
@@ -132,6 +143,79 @@ export default function ProLogin() {
                   placeholder="Dallas, TX"
                 />
                 <p className="text-xs text-gray-400 mt-1">The general area you work in</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  County
+                  <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={county}
+                  onChange={(e) => setCounty(e.target.value)}
+                  className={inputCls}
+                  placeholder="Dallas County"
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input
+                  id="fullMetroplex"
+                  type="checkbox"
+                  checked={servesFullMetroplex}
+                  onChange={(e) => setServesFullMetroplex(e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 rounded border-gray-300 dark:border-gray-600"
+                />
+                <label htmlFor="fullMetroplex" className="text-sm text-gray-700 dark:text-gray-300">
+                  I serve the full DFW metroplex
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Bio
+                  <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(optional)</span>
+                </label>
+                <textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  className={inputCls}
+                  placeholder="Tell consumers a bit about yourself and your experience…"
+                  rows={2}
+                  style={{ resize: 'none' }}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Hourly rate ($)
+                    <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(optional)</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="5"
+                    value={hourlyRate}
+                    onChange={(e) => setHourlyRate(e.target.value)}
+                    className={inputCls}
+                    placeholder="75"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Pricing note
+                    <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={rateNote}
+                    onChange={(e) => setRateNote(e.target.value)}
+                    className={inputCls}
+                    placeholder="Varies by job"
+                  />
+                </div>
               </div>
 
               <div>

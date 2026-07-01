@@ -22,7 +22,7 @@ export function Card({ children, className = '', onClick }: CardProps) {
 }
 
 interface CardHeaderProps {
-  title: string;
+  title: React.ReactNode;
   subtitle?: string;
   right?: React.ReactNode;
 }
