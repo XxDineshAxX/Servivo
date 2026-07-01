@@ -14,10 +14,13 @@ service cloud.firestore {
 
     // ─── Bookings ─────────────────────────────────────────────────────────────
     match /bookings/{bookingId} {
-      // Consumer or pro on the booking can read it
+      // Consumer or pro on the booking can read it.
+      // Any authenticated user can read a completed + rated booking
+      // so that pro profile pages can display public reviews.
       allow read: if request.auth != null &&
         (request.auth.uid == resource.data.consumerId ||
-         request.auth.uid == resource.data.proId);
+         request.auth.uid == resource.data.proId ||
+         (resource.data.status == 'completed' && resource.data.rating != null));
 
       // Consumer can create a booking (must set themselves as consumerId)
       allow create: if request.auth != null &&

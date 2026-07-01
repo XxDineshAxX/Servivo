@@ -56,12 +56,17 @@ export default function ProProfilePage() {
   useEffect(() => {
     if (!proId) return;
     setLoading(true);
-    Promise.all([getUserProfile(proId), getProReviews(proId)])
-      .then(([userProfile, revs]) => {
-        setPro(userProfile as ProProfile);
-        setReviews(revs);
-      })
+
+    // Load profile — failure shows "not found"
+    getUserProfile(proId)
+      .then((userProfile) => setPro(userProfile as ProProfile))
+      .catch(() => setPro(null))
       .finally(() => setLoading(false));
+
+    // Load reviews independently — failure is non-fatal (Firestore rules may block non-participants)
+    getProReviews(proId)
+      .then(setReviews)
+      .catch(() => setReviews([]));
   }, [proId]);
 
   useEffect(() => {
