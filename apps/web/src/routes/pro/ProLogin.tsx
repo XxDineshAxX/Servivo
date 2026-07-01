@@ -35,21 +35,31 @@ export default function ProLogin() {
   const [password, setPassword] = useState('');
 
   // Sign-up extras
-  const [displayName, setDisplayName]               = useState('');
-  const [username, setUsername]                     = useState('');
-  const [address, setAddress]                       = useState('');
-  const [county, setCounty]                         = useState('');
-  const [bio, setBio]                               = useState('');
-  const [hourlyRate, setHourlyRate]                 = useState('');
-  const [rateNote, setRateNote]                     = useState('');
+  const [displayName, setDisplayName]                 = useState('');
+  const [username, setUsername]                       = useState('');
+  const [address, setAddress]                         = useState('');
+  const [county, setCounty]                           = useState('');
+  const [bio, setBio]                                 = useState('');
+  const [rateNote, setRateNote]                       = useState('');
   const [servesFullMetroplex, setServesFullMetroplex] = useState(false);
-  const [serviceTypes, setServiceTypes]             = useState<string[]>([]);
+  const [serviceTypes, setServiceTypes]               = useState<string[]>([]);
+  const [serviceRates, setServiceRates]               = useState<Record<string, string>>({});
 
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
 
-  const toggleService = (s: string) =>
-    setServiceTypes((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
+  const toggleService = (s: string) => {
+    setServiceTypes((prev) => {
+      if (prev.includes(s)) {
+        setServiceRates((r) => { const n = { ...r }; delete n[s]; return n; });
+        return prev.filter((x) => x !== s);
+      }
+      return [...prev, s];
+    });
+  };
+
+  const setServiceRate = (service: string, rate: string) =>
+    setServiceRates((prev) => ({ ...prev, [service]: rate }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,13 +73,18 @@ export default function ProLogin() {
       if (mode === 'login') {
         await signIn(email, password);
       } else {
-        const parsedRate = parseFloat(hourlyRate);
+        // Build per-service rates map
+        const parsedRates: Record<string, number> = {};
+        for (const [svc, rateStr] of Object.entries(serviceRates)) {
+          const r = parseFloat(rateStr);
+          if (!isNaN(r) && r > 0) parsedRates[svc] = r;
+        }
         await signUpPro(email, password, displayName, serviceTypes, {
           username:            username.trim()  || undefined,
           address:             address.trim()   || undefined,
           county:              county.trim()    || undefined,
           bio:                 bio.trim()       || undefined,
-          hourlyRate:          !isNaN(parsedRate) && parsedRate > 0 ? parsedRate : undefined,
+          serviceRates:        Object.keys(parsedRates).length > 0 ? parsedRates : undefined,
           rateNote:            rateNote.trim()  || undefined,
           servesFullMetroplex: servesFullMetroplex || undefined,
         });
@@ -168,7 +183,7 @@ export default function ProLogin() {
                   className="w-4 h-4 text-indigo-600 rounded border-gray-300 dark:border-gray-600"
                 />
                 <label htmlFor="fullMetroplex" className="text-sm text-gray-700 dark:text-gray-300">
-                  I serve the full DFW metroplex
+                  I serve the full service area
                 </label>
               </div>
 
@@ -187,37 +202,7 @@ export default function ProLogin() {
                 />
               </div>
 
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Hourly rate ($)
-                    <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(optional)</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="5"
-                    value={hourlyRate}
-                    onChange={(e) => setHourlyRate(e.target.value)}
-                    className={inputCls}
-                    placeholder="75"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Pricing note
-                    <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={rateNote}
-                    onChange={(e) => setRateNote(e.target.value)}
-                    className={inputCls}
-                    placeholder="Varies by job"
-                  />
-                </div>
-              </div>
-
+              {/* Services — selected first, rates appear below */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Services offered <span className="text-red-500">*</span>
@@ -238,6 +223,54 @@ export default function ProLogin() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Per-service rate inputs — only shown when services are selected */}
+              {serviceTypes.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Hourly rates by service
+                    <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(optional)</span>
+                  </label>
+                  <div className="space-y-2">
+                    {serviceTypes.map((s) => (
+                      <div key={s} className="flex items-center gap-3">
+                        <span className="text-sm text-gray-700 dark:text-gray-300 flex-1 truncate">{s}</span>
+                        <div className="relative w-28">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="5"
+                            value={serviceRates[s] ?? ''}
+                            onChange={(e) => setServiceRate(s, e.target.value)}
+                            className={`${inputCls} pl-7`}
+                            placeholder="75"
+                          />
+                        </div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">/hr</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
+                    Leave a rate blank if it varies for that service
+                  </p>
+                </div>
+              )}
+
+              {/* Overall pricing note */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Pricing note
+                  <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={rateNote}
+                  onChange={(e) => setRateNote(e.target.value)}
+                  className={inputCls}
+                  placeholder="e.g. Free estimates · Weekend surcharge may apply"
+                />
               </div>
             </>
           )}

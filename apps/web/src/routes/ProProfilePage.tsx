@@ -178,20 +178,33 @@ export default function ProProfilePage() {
               <span className="text-gray-500 dark:text-gray-400">Service area</span>
               <span className="font-medium text-gray-900 dark:text-white">{serviceArea}</span>
             </div>
-            {pro.hourlyRate != null && (
+            {/* Per-service rates (new accounts) */}
+            {pro.serviceRates && Object.keys(pro.serviceRates).length > 0 ? (
+              <>
+                {Object.entries(pro.serviceRates).map(([svc, rate]) => (
+                  <div key={svc} className="flex justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">{svc}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">${rate}/hr</span>
+                  </div>
+                ))}
+                {pro.rateNote && (
+                  <p className="text-xs text-gray-400 dark:text-gray-500 pt-0.5">{pro.rateNote}</p>
+                )}
+              </>
+            ) : pro.hourlyRate != null ? (
+              /* Legacy single rate */
               <div className="flex justify-between">
                 <span className="text-gray-500 dark:text-gray-400">Rate</span>
                 <span className="font-medium text-gray-900 dark:text-white">
                   ${pro.hourlyRate}/hr{pro.rateNote ? ` · ${pro.rateNote}` : ''}
                 </span>
               </div>
-            )}
-            {!pro.hourlyRate && pro.rateNote && (
+            ) : pro.rateNote ? (
               <div className="flex justify-between">
                 <span className="text-gray-500 dark:text-gray-400">Pricing</span>
                 <span className="font-medium text-gray-900 dark:text-white">{pro.rateNote}</span>
               </div>
-            )}
+            ) : null}
             <div className="flex justify-between">
               <span className="text-gray-500 dark:text-gray-400">Completed jobs</span>
               <span className="font-medium text-gray-900 dark:text-white">{pro.completedBookings}</span>

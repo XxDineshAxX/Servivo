@@ -58,9 +58,11 @@ export default function ProfileSettingsPage() {
   const [address, setAddress]         = useState(profile?.address ?? '');
 
   // ── Pro-only fields ──────────────────────────────────────────────────────────
-  const [serviceTypes, setServiceTypes]           = useState<string[]>(pro?.serviceTypes ?? []);
-  const [hourlyRate, setHourlyRate]               = useState(String(pro?.hourlyRate ?? ''));
-  const [rateNote, setRateNote]                   = useState(pro?.rateNote ?? '');
+  const [serviceTypes, setServiceTypes]               = useState<string[]>(pro?.serviceTypes ?? []);
+  const [serviceRates, setServiceRates]               = useState<Record<string, string>>(
+    Object.fromEntries(Object.entries(pro?.serviceRates ?? {}).map(([k, v]) => [k, String(v)]))
+  );
+  const [rateNote, setRateNote]                       = useState(pro?.rateNote ?? '');
   const [servesFullMetroplex, setServesFullMetroplex] = useState(pro?.servesFullMetroplex ?? false);
 
   const [saving, setSaving]   = useState(false);
@@ -77,16 +79,26 @@ export default function ProfileSettingsPage() {
     setAddress(profile.address ?? '');
     if (isPro && pro) {
       setServiceTypes(pro.serviceTypes ?? []);
-      setHourlyRate(String(pro.hourlyRate ?? ''));
+      setServiceRates(
+        Object.fromEntries(Object.entries(pro.serviceRates ?? {}).map(([k, v]) => [k, String(v)]))
+      );
       setRateNote(pro.rateNote ?? '');
       setServesFullMetroplex(pro.servesFullMetroplex ?? false);
     }
   }, [profile?.uid]);
 
-  const toggleService = (s: string) =>
-    setServiceTypes((prev) =>
-      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s],
-    );
+  const toggleService = (s: string) => {
+    setServiceTypes((prev) => {
+      if (prev.includes(s)) {
+        setServiceRates((r) => { const n = { ...r }; delete n[s]; return n; });
+        return prev.filter((x) => x !== s);
+      }
+      return [...prev, s];
+    });
+  };
+
+  const setServiceRate = (service: string, rate: string) =>
+    setServiceRates((prev) => ({ ...prev, [service]: rate }));
 
   const handleSave = async () => {
     if (!displayName.trim()) { setError('Display name is required.'); return; }
@@ -94,7 +106,11 @@ export default function ProfileSettingsPage() {
     setError(null);
     setSaving(true);
     try {
-      const parsedRate = parseFloat(hourlyRate);
+      const parsedRates: Record<string, number> = {};
+      for (const [svc, rateStr] of Object.entries(serviceRates)) {
+        const r = parseFloat(rateStr);
+        if (!isNaN(r) && r > 0) parsedRates[svc] = r;
+      }
       await updateProfile({
         displayName: displayName.trim(),
         username:    username.trim()  || undefined,
@@ -103,7 +119,7 @@ export default function ProfileSettingsPage() {
         address:     address.trim()   || undefined,
         ...(isPro ? {
           serviceTypes,
-          hourlyRate:          !isNaN(parsedRate) && parsedRate > 0 ? parsedRate : undefined,
+          serviceRates:        Object.keys(parsedRates).length > 0 ? parsedRates : undefined,
           rateNote:            rateNote.trim() || undefined,
           servesFullMetroplex: servesFullMetroplex,
         } : {}),
@@ -230,7 +246,7 @@ export default function ProfileSettingsPage() {
           </Field>
         </Section>
 
-        {/* Pro-only section */}
+        {/* Pro-only sections */}
         {isPro && (
           <>
             <Section title="Services">
@@ -255,25 +271,45 @@ export default function ProfileSettingsPage() {
             </Section>
 
             <Section title="Pricing">
-              <Field label="Hourly rate ($)" hint="Leave blank if pricing varies too much">
-                <input
-                  type="number"
-                  min="0"
-                  step="5"
-                  value={hourlyRate}
-                  onChange={(e) => setHourlyRate(e.target.value)}
-                  className={inputCls}
-                  placeholder="75"
-                />
-              </Field>
+              {serviceTypes.length > 0 ? (
+                <Field
+                  label="Hourly rates by service"
+                  hint="Leave a rate blank if pricing varies for that service"
+                >
+                  <div className="space-y-2 mt-1">
+                    {serviceTypes.map((s) => (
+                      <div key={s} className="flex items-center gap-3">
+                        <span className="text-sm text-gray-700 dark:text-gray-300 flex-1 truncate">{s}</span>
+                        <div className="relative w-32">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="5"
+                            value={serviceRates[s] ?? ''}
+                            onChange={(e) => setServiceRate(s, e.target.value)}
+                            className={`${inputCls} pl-7`}
+                            placeholder="75"
+                          />
+                        </div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">/hr</span>
+                      </div>
+                    ))}
+                  </div>
+                </Field>
+              ) : (
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  Select your services above to set per-service rates.
+                </p>
+              )}
 
-              <Field label="Pricing note" hint="E.g. 'Varies by job type' or 'Free estimates'">
+              <Field label="Pricing note" hint="E.g. 'Free estimates' or 'Weekend surcharge may apply'">
                 <input
                   type="text"
                   value={rateNote}
                   onChange={(e) => setRateNote(e.target.value)}
                   className={inputCls}
-                  placeholder="Varies by job"
+                  placeholder="e.g. Free estimates · Rates may vary by job size"
                 />
               </Field>
 
@@ -289,7 +325,7 @@ export default function ProfileSettingsPage() {
                   htmlFor="fullMetroplex"
                   className="text-sm text-gray-700 dark:text-gray-300"
                 >
-                  I serve the full DFW metroplex
+                  I serve the full service area
                 </label>
               </div>
             </Section>

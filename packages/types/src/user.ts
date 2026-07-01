@@ -33,7 +33,9 @@ export interface ProProfile extends BaseUser {
   /** Average star rating from consumers */
   rating: number;
   completedBookings: number;
-  /** Starting / typical hourly rate in USD */
+  /** Per-service hourly rates in USD, keyed by service type */
+  serviceRates?: Record<string, number>;
+  /** Legacy single hourly rate – kept for backward compat */
   hourlyRate?: number;
   /** Free-text note about pricing (e.g. "Varies by job type") */
   rateNote?: string;

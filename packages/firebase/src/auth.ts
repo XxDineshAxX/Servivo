@@ -24,6 +24,7 @@ export interface ProfileUpdateFields {
   county?: string;
   address?: string;
   serviceTypes?: string[];
+  serviceRates?: Record<string, number>;
   hourlyRate?: number;
   rateNote?: string;
   servesFullMetroplex?: boolean;
@@ -70,6 +71,7 @@ export async function signUpPro(
     hourlyRate?: number;
     rateNote?: string;
     servesFullMetroplex?: boolean;
+    serviceRates?: Record<string, number>;
   },
 ): Promise<ProProfile> {
   const { user } = await createUserWithEmailAndPassword(auth, email, password);
@@ -84,6 +86,7 @@ export async function signUpPro(
     ...(opts?.hourlyRate != null  ? { hourlyRate:          opts.hourlyRate          } : {}),
     ...(opts?.rateNote            ? { rateNote:            opts.rateNote            } : {}),
     ...(opts?.servesFullMetroplex ? { servesFullMetroplex: opts.servesFullMetroplex } : {}),
+    ...(opts?.serviceRates && Object.keys(opts.serviceRates).length > 0 ? { serviceRates: opts.serviceRates } : {}),
     role: 'pro',
     serviceTypes,
     location: { lat: 0, lng: 0 },
