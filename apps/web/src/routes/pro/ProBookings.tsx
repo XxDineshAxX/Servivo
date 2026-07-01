@@ -209,6 +209,7 @@ export default function ProBookings() {
     { icon: '📋', label: 'Bookings',  path: '/pro/bookings' },
     { icon: '💬', label: 'Messages',  path: '/pro/messages', badge: unreadMessages },
     { icon: '📅', label: 'Schedule',  path: '/pro/schedule' },
+    { icon: '👤', label: 'Profile',   path: '/profile' },
   ];
 
   return (

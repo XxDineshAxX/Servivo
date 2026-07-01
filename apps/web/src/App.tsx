@@ -24,6 +24,7 @@ import ProChat from './routes/pro/ProChat';
 // Profile pages (accessible by any authenticated user)
 import ProProfilePage from './routes/ProProfilePage';
 import ConsumerProfilePage from './routes/ConsumerProfilePage';
+import ProfileSettingsPage from './routes/ProfileSettingsPage';
 
 // Landing / role selector
 import Landing from './routes/Landing';
@@ -84,6 +85,12 @@ export default function App() {
         <Route
           path="/consumer/profile/:consumerId"
           element={profile ? <ConsumerProfilePage /> : <Navigate to="/" replace />}
+        />
+
+        {/* My profile settings — any logged-in user */}
+        <Route
+          path="/profile"
+          element={profile ? <ProfileSettingsPage /> : <Navigate to="/" replace />}
         />
 
         {/* Fallback */}

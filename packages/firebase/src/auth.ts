@@ -11,10 +11,23 @@ import {
   doc,
   setDoc,
   getDoc,
+  updateDoc,
   serverTimestamp,
 } from 'firebase/firestore';
-import type { ConsumerProfile, ProProfile, UserRole } from '@servivo/types';
+import type { ConsumerProfile, ProProfile } from '@servivo/types';
 import { firebaseApp } from './config';
+
+export interface ProfileUpdateFields {
+  displayName?: string;
+  username?: string;
+  bio?: string;
+  county?: string;
+  address?: string;
+  serviceTypes?: string[];
+  hourlyRate?: number;
+  rateNote?: string;
+  servesFullMetroplex?: boolean;
+}
 
 export const auth = getAuth(firebaseApp);
 export const db = getFirestore(firebaseApp);
@@ -123,7 +136,20 @@ export async function getUserProfile(
   return snap.data() as ConsumerProfile | ProProfile;
 }
 
-/** Subscribe to auth state changes and resolve the Firestore profile. */
+/**
+ * Patch a user's profile fields in Firestore.
+ * Only the supplied keys are written — other fields are untouched.
+ */
+export async function updateUserProfile(uid: string, fields: ProfileUpdateFields): Promise<void> {
+  const clean: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(fields)) {
+    if (v !== undefined) clean[k] = v;
+  }
+  await updateDoc(doc(db, 'users', uid), clean);
+}
+
+// ─── Real-time auth listener ────────────────────────────────────────────────
+
 export function onAuthProfileChange(
   callback: (profile: ConsumerProfile | ProProfile | null) => void,
 ): () => void {
@@ -133,8 +159,8 @@ export function onAuthProfileChange(
       return;
     }
     try {
-      const profile = await getUserProfile(user.uid);
-      callback(profile);
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      callback(snap.exists() ? (snap.data() as ConsumerProfile | ProProfile) : null);
     } catch {
       callback(null);
     }

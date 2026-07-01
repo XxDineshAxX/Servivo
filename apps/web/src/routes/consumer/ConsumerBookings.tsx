@@ -60,6 +60,7 @@ export default function ConsumerBookings() {
     { icon: '🏠', label: 'Home',     path: '/consumer' },
     { icon: '📋', label: 'Bookings', path: '/consumer/bookings' },
     { icon: '💬', label: 'Messages', path: '/consumer/chats', badge: unreadMessages },
+    { icon: '👤', label: 'Profile',  path: '/profile' },
   ];
 
   return (

@@ -50,6 +50,7 @@ export default function ProMessages() {
     { icon: '📋', label: 'Bookings',  path: '/pro/bookings' },
     { icon: '💬', label: 'Messages',  path: '/pro/messages', badge: unreadTotal },
     { icon: '📅', label: 'Schedule',  path: '/pro/schedule' },
+    { icon: '👤', label: 'Profile',   path: '/profile' },
   ];
 
   const formatTime = (ts: number) => {

@@ -57,6 +57,7 @@ export default function ProDashboard() {
     { icon: '📋', label: 'Bookings',  path: '/pro/bookings', badge: pendingCount },
     { icon: '💬', label: 'Messages',  path: '/pro/messages', badge: unreadMessages },
     { icon: '📅', label: 'Schedule',  path: '/pro/schedule' },
+    { icon: '👤', label: 'Profile',   path: '/profile' },
   ];
 
   const locationBlocked =
