@@ -38,6 +38,31 @@ function StarRating({ value, onChange }: { value: number; onChange: (v: number) 
   );
 }
 
+/** Catches any render-time error inside TrackingMap and shows a fallback. */
+class MapErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="w-full h-52 rounded-xl bg-gray-100 dark:bg-gray-700 flex flex-col items-center justify-center gap-2">
+          <p className="text-2xl">📍</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">Live tracking unavailable</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 /** Live tracking map — shows consumer (blue) and pro (indigo) markers. */
 function TrackingMap({
   consumerLocation,
@@ -53,6 +78,7 @@ function TrackingMap({
   const proMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const consumerMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const [proLocation, setProLocation] = useState<GeoPoint | null>(null);
+  const [mapError, setMapError] = useState<string | null>(null);
 
   // Subscribe to pro's live location
   useEffect(() => {
@@ -60,51 +86,58 @@ function TrackingMap({
     return unsub;
   }, [proId]);
 
-  // Init map
+  // Init map (same guard pattern as MapView — works in Strict Mode)
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const map = new mapboxgl.Map({
-      container: containerRef.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: [consumerLocation.lng, consumerLocation.lat],
-      zoom: 13,
-    });
+    let map: mapboxgl.Map;
+    try {
+      map = new mapboxgl.Map({
+        container: containerRef.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [consumerLocation.lng, consumerLocation.lat],
+        zoom: 13,
+      });
 
-    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-    // Consumer marker (blue)
-    const consumerEl = document.createElement('div');
-    consumerEl.style.cssText = `
-      width:14px;height:14px;border-radius:50%;
-      background:#3b82f6;border:2px solid white;
-      box-shadow:0 1px 4px rgba(0,0,0,0.4);
-    `;
-    consumerEl.title = 'Your location';
-    consumerMarkerRef.current = new mapboxgl.Marker({ element: consumerEl })
-      .setLngLat([consumerLocation.lng, consumerLocation.lat])
-      .setPopup(new mapboxgl.Popup({ offset: 14, closeButton: false }).setText('Your location'))
-      .addTo(map);
+      // Consumer marker (blue dot)
+      const consumerEl = document.createElement('div');
+      consumerEl.style.cssText = `
+        width:14px;height:14px;border-radius:50%;
+        background:#3b82f6;border:2px solid white;
+        box-shadow:0 1px 4px rgba(0,0,0,0.4);
+      `;
+      consumerEl.title = 'Your location';
+      consumerMarkerRef.current = new mapboxgl.Marker({ element: consumerEl })
+        .setLngLat([consumerLocation.lng, consumerLocation.lat])
+        .setPopup(new mapboxgl.Popup({ offset: 14, closeButton: false }).setText('Your location'))
+        .addTo(map);
 
-    mapRef.current = map;
+      mapRef.current = map;
+    } catch (err) {
+      console.error('[TrackingMap] Map init error:', err);
+      setMapError('Map unavailable');
+      return;
+    }
 
     return () => {
       proMarkerRef.current?.remove();
       consumerMarkerRef.current?.remove();
-      map.remove();
+      map?.remove();
       mapRef.current = null;
       proMarkerRef.current = null;
       consumerMarkerRef.current = null;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update / create pro marker when location updates
+  // Update / create pro marker whenever live location arrives
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !proLocation) return;
 
     if (!proMarkerRef.current) {
-      // Create pro marker (indigo)
       const proEl = document.createElement('div');
       proEl.style.cssText = `
         width:36px;height:36px;border-radius:50%;
@@ -123,16 +156,31 @@ function TrackingMap({
       proMarkerRef.current.setLngLat([proLocation.lng, proLocation.lat]);
     }
 
-    // Fit bounds to show both markers
-    const bounds = new mapboxgl.LngLatBounds();
-    bounds.extend([consumerLocation.lng, consumerLocation.lat]);
-    bounds.extend([proLocation.lng, proLocation.lat]);
-    map.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: 800 });
-  }, [proLocation, consumerLocation]);
+    // Only call fitBounds when the two points are not at the exact same coordinates
+    const isSamePoint =
+      Math.abs(proLocation.lat - consumerLocation.lat) < 0.0001 &&
+      Math.abs(proLocation.lng - consumerLocation.lng) < 0.0001;
+
+    if (!isSamePoint) {
+      const bounds = new mapboxgl.LngLatBounds();
+      bounds.extend([consumerLocation.lng, consumerLocation.lat]);
+      bounds.extend([proLocation.lng, proLocation.lat]);
+      map.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: 800 });
+    }
+  }, [proLocation, consumerLocation, proName]);
+
+  if (mapError) {
+    return (
+      <div className="w-full h-52 rounded-xl bg-gray-100 dark:bg-gray-700 flex flex-col items-center justify-center gap-2">
+        <p className="text-2xl">📍</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500">Live tracking unavailable</p>
+      </div>
+    );
+  }
 
   return (
     <div>
-      <div ref={containerRef} className="w-full h-52 rounded-xl overflow-hidden" />
+      <div ref={containerRef} className="w-full rounded-xl overflow-hidden" style={{ height: '208px' }} />
       {!proLocation && (
         <p className="text-xs text-center text-gray-400 dark:text-gray-500 mt-2">
           Waiting for pro's location…
@@ -186,6 +234,8 @@ export default function BookingStatus() {
 
   const alreadyRated = !!booking.ratedAt || ratingDone;
   const showTracking = ['accepted', 'in_progress'].includes(booking.status);
+  // Safe first name — guards against legacy bookings that may lack proName
+  const proFirstName = booking.proName?.split(' ')[0] ?? booking.proName ?? 'Pro';
 
   return (
     <div className="min-h-screen bg-indigo-50 dark:bg-gray-900 p-4 flex flex-col items-center justify-center">
@@ -238,11 +288,13 @@ export default function BookingStatus() {
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2">
                 Live tracking
               </p>
-              <TrackingMap
-                consumerLocation={booking.consumerLocation}
-                proId={booking.proId}
-                proName={booking.proName}
-              />
+              <MapErrorBoundary>
+                <TrackingMap
+                  consumerLocation={booking.consumerLocation}
+                  proId={booking.proId}
+                  proName={booking.proName ?? ''}
+                />
+              </MapErrorBoundary>
             </div>
           )}
 
@@ -266,7 +318,7 @@ export default function BookingStatus() {
                 className="w-full"
                 onClick={() => navigate(`/consumer/chat/${booking.proId}`)}
               >
-                💬 Message {booking.proName.split(' ')[0]}
+                💬 Message {proFirstName}
               </Button>
             )}
 
@@ -297,13 +349,13 @@ export default function BookingStatus() {
                 <p className="text-2xl mb-1">🎉</p>
                 <p className="font-semibold text-gray-900 dark:text-white">Thanks for your review!</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  You rated {booking.proName.split(' ')[0]} {booking.rating ?? rating} ⭐
+                  You rated {proFirstName} {booking.rating ?? rating} ⭐
                 </p>
               </div>
             ) : (
               <>
                 <h3 className="font-bold text-gray-900 dark:text-white text-center mb-1">
-                  How was {booking.proName.split(' ')[0]}?
+                  How was {proFirstName}?
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 text-center mb-2">
                   Your rating helps other consumers make better choices

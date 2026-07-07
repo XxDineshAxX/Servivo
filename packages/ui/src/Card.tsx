@@ -11,7 +11,7 @@ export function Card({ children, className = '', onClick }: CardProps) {
     <div
       onClick={onClick}
       className={[
-        'bg-white rounded-xl shadow-md p-4',
+        'bg-white dark:bg-gray-800 rounded-xl shadow-md p-4',
         onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : '',
         className,
       ].join(' ')}

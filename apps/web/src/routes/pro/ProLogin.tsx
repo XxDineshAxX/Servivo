@@ -281,7 +281,7 @@ export default function ProLogin() {
               type="email"
               required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); setError(null); }}
               className={inputCls}
             />
           </div>
@@ -292,13 +292,18 @@ export default function ProLogin() {
               type="password"
               required
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); setError(null); }}
               className={inputCls}
               placeholder="••••••••"
             />
           </div>
 
-          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+          {error && (
+            <div className="flex items-start gap-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl px-4 py-3">
+              <span className="text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5">⚠️</span>
+              <p className="text-sm text-red-700 dark:text-red-300 font-medium">{error}</p>
+            </div>
+          )}
 
           <Button type="submit" variant="primary" size="md" className="w-full" loading={loading}>
             {mode === 'login' ? 'Sign in' : 'Create pro account'}

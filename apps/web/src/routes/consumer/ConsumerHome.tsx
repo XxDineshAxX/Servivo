@@ -54,6 +54,7 @@ export default function ConsumerHome() {
         consumerId: profile.uid,
         consumerName: profile.displayName,
         proId: pro.proId,
+        proName: pro.proName,
         serviceType: pro.serviceTypes[0] ?? 'General',
         consumerLocation: location,
         distanceKm: pro.distanceKm,

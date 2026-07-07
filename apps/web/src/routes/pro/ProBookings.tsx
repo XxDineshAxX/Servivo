@@ -63,7 +63,10 @@ function ProBookingRow({ booking }: { booking: Booking }) {
 
   const handleNavigate = () => {
     const { lat, lng } = booking.consumerLocation;
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const url = isIOS
+      ? `https://maps.apple.com/?daddr=${lat},${lng}`
+      : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
     window.open(url, '_blank', 'noopener');
   };
 

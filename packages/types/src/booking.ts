@@ -45,6 +45,7 @@ export interface BookingRequest {
   consumerId: string;
   consumerName: string;
   proId: string;
+  proName: string;
   serviceType: string;
   consumerLocation: GeoPoint;
   distanceKm: number;
